@@ -7,6 +7,16 @@
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+html.locale-my .app {
+  font-family:
+    "Myanmar Text",
+    "Noto Sans Myanmar",
+    "Padauk",
+    "Pyidaungsu",
+    system-ui,
+    sans-serif;
+}
+
 .main {
   flex: 1;
   padding: 3rem 1.25rem 1rem;
@@ -190,11 +200,11 @@
 
 .tab {
   flex: 1;
-  padding: 0.65rem;
+  padding: 0.5rem 0.25rem;
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -204,4 +214,383 @@
 
 .tab.active {
   color: #5cb87a;
+}
+
+.inline-link {
+  color: #7dd89a;
+}
+
+.weather-panel .btn {
+  margin-bottom: 0.75rem;
+}
+
+.weather-msg {
+  color: #e89880;
+  font-size: 0.88rem;
+  margin: 0 0 0.75rem;
+}
+
+.weather-loc-card {
+  border-color: rgba(92, 184, 122, 0.35);
+  margin-bottom: 1.25rem;
+}
+
+.weather-loc-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5cb87a;
+}
+
+.weather-big-temp {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #e6ede8;
+}
+
+.weather-cond {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 1rem;
+  color: #e6ede8;
+}
+
+.weather-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e6ede8;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  color: #5cb87a;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.link-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.weather-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.weather-row {
+  margin-bottom: 0.65rem;
+}
+
+.weather-row-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.35rem;
+}
+
+.weather-place {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #e6ede8;
+}
+
+.weather-region {
+  font-size: 0.75rem;
+  color: rgba(230, 237, 232, 0.5);
+}
+
+.weather-line {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #e6ede8;
+}
+
+.weather-sub {
+  color: rgba(230, 237, 232, 0.5);
+  font-size: 0.82rem;
+}
+
+.weather-err {
+  margin: 0;
+  color: #e89880;
+  font-size: 0.88rem;
+}
+
+.market-panel .input-search {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #e6ede8;
+  background: #141c17;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.65rem;
+}
+
+.market-panel .input-search:focus {
+  outline: none;
+  border-color: rgba(92, 184, 122, 0.45);
+}
+
+.market-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.market-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: #e6ede8;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.market-row:last-child {
+  border-bottom: none;
+}
+
+.market-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.market-row.active {
+  background: rgba(92, 184, 122, 0.12);
+}
+
+.market-row-title {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.market-row-meta {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: #5cb87a;
+  font-weight: 600;
+}
+
+.market-detail-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #e6ede8;
+}
+
+.market-breadcrumb {
+  margin-top: 0;
+}
+
+.weather-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.weather-actions .btn-secondary {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.btn-secondary {
+  background: rgba(92, 184, 122, 0.2);
+  color: #7dd89a;
+}
+
+.btn-secondary:hover {
+  filter: brightness(1.08);
+}
+
+.hint.tight {
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.prediction-block {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.prediction-mid {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #7dd89a;
+}
+
+.factor-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: rgba(230, 237, 232, 0.75);
+  line-height: 1.5;
+}
+
+.disclaimer {
+  margin: 0.75rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(230, 237, 232, 0.45);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.chip {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: rgba(230, 237, 232, 0.75);
+  background: #141c17;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip.active {
+  color: #0c120f;
+  background: #5cb87a;
+  border-color: #5cb87a;
+}
+
+.news-toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.news-list {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  max-height: 42vh;
+  overflow-y: auto;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.news-item {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.news-item:last-child {
+  border-bottom: none;
+}
+
+.news-link {
+  color: #7dd89a;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-decoration: none;
+}
+
+.news-link:hover {
+  text-decoration: underline;
+}
+
+.news-link-my {
+  font-family:
+    "Myanmar Text",
+    "Noto Sans Myanmar",
+    "Padauk",
+    "Pyidaungsu",
+    system-ui,
+    sans-serif;
+}
+
+.news-meta {
+  margin: 0.35rem 0 0.25rem;
+  font-size: 0.75rem;
+  color: rgba(230, 237, 232, 0.45);
+  line-height: 1.35;
+}
+
+.news-source {
+  color: rgba(230, 237, 232, 0.55);
+}
+
+.news-use {
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+}
+
+.subheading {
+  margin: 1.25rem 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #e6ede8;
+}
+
+.settings-lang {
+  margin-bottom: 1rem;
+}
+
+.lang-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.lang-btn {
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #e6ede8;
+  background: #0c120f;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.65rem;
+  cursor: pointer;
+}
+
+.lang-btn.active {
+  color: #0c120f;
+  background: #5cb87a;
+  border-color: #5cb87a;
+}
+
+.hint.tight-top {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.about-body-my {
+  white-space: pre-wrap;
 }

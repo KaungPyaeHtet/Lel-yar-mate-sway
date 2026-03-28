@@ -1,21 +1,25 @@
-import { analyzeWithRules } from "@agriora/core";
+import type { AppStringKey } from "@agriora/core";
 import { useState } from "react";
 import "./App.css";
+import { LocaleProvider, useI18n } from "./LocaleContext";
+import { MarketPanel } from "./MarketPanel";
+import { NewsPanel } from "./NewsPanel";
+import { SettingsPanel } from "./SettingsPanel";
+import { WeatherPanel } from "./WeatherPanel";
 
-type Tab = "home" | "news" | "about";
+type Tab = "home" | "market" | "weather" | "news" | "settings";
 
-function verdictLabel(v: string) {
-  if (v === "up") return "Prices may increase";
-  if (v === "down") return "Prices may decrease";
-  return "Prices may stay about the same";
-}
-
-export default function App() {
+function AppShell() {
+  const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("home");
-  const [paragraph, setParagraph] = useState("");
-  const [result, setResult] = useState<ReturnType<
-    typeof analyzeWithRules
-  > | null>(null);
+
+  const tabs: { id: Tab; labelKey: AppStringKey }[] = [
+    { id: "home", labelKey: "tab.home" },
+    { id: "market", labelKey: "tab.market" },
+    { id: "weather", labelKey: "tab.weather" },
+    { id: "news", labelKey: "tab.news" },
+    { id: "settings", labelKey: "tab.settings" },
+  ];
 
   return (
     <div className="app">
@@ -23,95 +27,42 @@ export default function App() {
         {tab === "home" && (
           <div className="hero">
             <h1 className="logo">Agriora</h1>
-            <p className="tag">
-              Hackathon app — React (Vite) + shared @agriora/core logic.
-            </p>
-            <span className="pill">Offline-first</span>
+            <p className="tag">{t("home.tag")}</p>
+            <span className="pill">{t("home.pill")}</span>
           </div>
         )}
 
-        {tab === "news" && (
-          <div className="panel">
-            <h2 className="page-title">News → price hint</h2>
-            <p className="hint">
-              Paste macro or crop news. Scoring uses offline rules in
-              @agriora/core (not advice).
-            </p>
-            <textarea
-              className="textarea"
-              placeholder="Paste a paragraph…"
-              rows={8}
-              value={paragraph}
-              onChange={(e) => setParagraph(e.target.value)}
-            />
-            <button
-              type="button"
-              className="btn"
-              onClick={() => setResult(analyzeWithRules(paragraph))}
-            >
-              Estimate trend
-            </button>
-            {result && result.rows.length > 0 && (
-              <div className="card">
-                <p className="result-label">Estimate</p>
-                <p className={`result-main v-${result.verdict}`}>
-                  {verdictLabel(result.verdict)}
-                </p>
-                <p className="meta">
-                  Blend avg {result.avgBlend.toFixed(2)} · keyword net{" "}
-                  {result.totalNet.toFixed(2)} · {result.rows.length}{" "}
-                  sentence(s)
-                </p>
-                <ul className="rows">
-                  {result.rows.map((r, i) => (
-                    <li key={i}>
-                      {r.text.length > 100 ? r.text.slice(0, 100) + "…" : r.text}
-                      <span className="row-sub">
-                        blend {r.blend.toFixed(2)} (rules {r.net.toFixed(2)})
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {result && result.rows.length === 0 && (
-              <p className="hint">Add at least a short sentence.</p>
-            )}
-          </div>
+        {tab === "market" && <MarketPanel />}
+
+        {tab === "weather" && (
+          <WeatherPanel isActive={tab === "weather"} />
         )}
 
-        {tab === "about" && (
-          <div className="panel">
-            <h2 className="page-title">About us</h2>
-            <div className="card">
-              <p className="body">
-                Team Agriora — hackathon build. This web app uses Vite + React;
-                the mobile app uses Expo (React Native). Shared price-hint logic
-                lives in <code>@agriora/core</code>.
-              </p>
-            </div>
-          </div>
-        )}
+        {tab === "news" && <NewsPanel isActive={tab === "news"} />}
+
+        {tab === "settings" && <SettingsPanel />}
       </main>
 
-      <nav className="tabbar" aria-label="Main">
-        {(
-          [
-            ["home", "Home"],
-            ["news", "News"],
-            ["about", "About"],
-          ] as const
-        ).map(([id, label]) => (
+      <nav className="tabbar" aria-label={t("nav.mainAria")}>
+        {tabs.map(({ id, labelKey }) => (
           <button
             key={id}
             type="button"
             className={tab === id ? "tab active" : "tab"}
             onClick={() => setTab(id)}
           >
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </nav>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LocaleProvider>
+      <AppShell />
+    </LocaleProvider>
   );
 }
