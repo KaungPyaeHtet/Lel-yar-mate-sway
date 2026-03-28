@@ -1,0 +1,19 @@
+{
+  "name": "agriora",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "postinstall": "npm run build --workspace=@agriora/core",
+    "web": "npm run dev --workspace=@agriora/web",
+    "mobile": "npm run start --workspace=@agriora/mobile",
+    "build:web": "npm run build --workspace=@agriora/web",
+    "build:core": "npm run build --workspace=@agriora/core"
+  },
+  "overrides": {
+    "expo": "~54.0.33",
+    "expo-status-bar": "~3.0.9"
+  }
+}

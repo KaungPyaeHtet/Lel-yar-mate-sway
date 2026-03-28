@@ -1,0 +1,9 @@
+node_modules
+dist
+.venv
+.env
+*.local
+.DS_Store
+apps/mobile/.expo
+apps/web/dist
+*.tsbuildinfo
