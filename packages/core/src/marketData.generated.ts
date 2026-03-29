@@ -3,7 +3,7 @@
 import type { MarketItem } from "./marketTypes";
 
 export const MARKET_SOURCE_FILE = "data.xlsx";
-export const MARKET_GENERATED_AT_ISO = "2026-03-29T08:10:15Z";
+export const MARKET_GENERATED_AT_ISO = "2026-03-29T08:21:02Z";
 
 export const MARKET_PERIODS_ISO: readonly string[] = [
   "2026-03-14",
