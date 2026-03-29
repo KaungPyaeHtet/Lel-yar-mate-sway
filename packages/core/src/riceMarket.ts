@@ -8,7 +8,11 @@ import {
   MARKET_ITEMS,
   MARKET_PERIODS_ISO,
 } from "./marketData.generated";
-import { recentMidPricesForMl } from "./market";
+import {
+  getMarketItemById,
+  recentMidPricesForInference,
+  recentMidPricesForMl,
+} from "./market";
 import type { MarketItem, PriceObservation } from "./marketTypes";
 
 export { MARKET_GENERATED_AT_ISO as RICE_MARKET_SHEET_GENERATED_AT_ISO };
@@ -132,6 +136,19 @@ export function getPrimaryRiceMarketItem(): MarketItem {
     if (recentMidPricesForMl(it, 8) != null) return it;
   }
   return RICE_MARKET_ITEMS[0]!;
+}
+
+/**
+ * Default `MarketItem` id for the market tab: prefer the primary rice row when
+ * it exists in the sheet export; otherwise the first row that can feed the ML API.
+ */
+export function initialMarketTabItemId(): string {
+  const rice = getPrimaryRiceMarketItem();
+  if (getMarketItemById(rice.id)) return rice.id;
+  const fallback = MARKET_ITEMS.find(
+    (it) => recentMidPricesForInference(it, 8) != null
+  );
+  return fallback?.id ?? MARKET_ITEMS[0]!.id;
 }
 
 /** Mid-price points for charts, oldest → newest. */

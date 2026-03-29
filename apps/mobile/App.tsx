@@ -2,13 +2,27 @@ import type { AppStringKey } from "@agriora/core";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import { useState, type ComponentProps } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
+import {
+  NotoSansMyanmar_400Regular,
+  NotoSansMyanmar_500Medium,
+  NotoSansMyanmar_600SemiBold,
+  NotoSansMyanmar_700Bold,
+  useFonts,
+} from "@expo-google-fonts/noto-sans-myanmar";
 import { LocaleProvider, useI18n } from "./LocaleContext";
 import { MarketTab } from "./MarketTab";
 import { NewsTab } from "./NewsTab";
 import { SettingsTab } from "./SettingsTab";
 import { WeatherTab } from "./WeatherTab";
-import { theme } from "./theme";
+import { myLh, theme } from "./theme";
+import { UiText } from "./UiText";
 
 type Tab = "home" | "market" | "weather" | "news" | "settings";
 
@@ -44,10 +58,10 @@ function AppShell() {
               accessibilityLabel="Agriora"
               accessibilityRole="image"
             />
-            {homeTag ? <Text style={styles.tag}>{homeTag}</Text> : null}
+            {homeTag ? <UiText style={styles.tag}>{homeTag}</UiText> : null}
             {homePill ? (
               <View style={styles.pill}>
-                <Text style={styles.pillText}>{homePill}</Text>
+                <UiText style={styles.pillText}>{homePill}</UiText>
               </View>
             ) : null}
             <View style={styles.homeQuickActions}>
@@ -65,7 +79,7 @@ function AppShell() {
                   size={28}
                   color={theme.accent}
                 />
-                <Text style={styles.homeQuickLabel}>{t("tab.news")}</Text>
+                <UiText style={styles.homeQuickLabel}>{t("tab.news")}</UiText>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [
@@ -81,7 +95,7 @@ function AppShell() {
                   size={28}
                   color={theme.accent}
                 />
-                <Text style={styles.homeQuickLabel}>{t("tab.weather")}</Text>
+                <UiText style={styles.homeQuickLabel}>{t("tab.weather")}</UiText>
               </Pressable>
             </View>
           </View>
@@ -110,12 +124,13 @@ function AppShell() {
                 size={26}
                 color={active ? theme.accent : theme.fgMuted}
               />
-              <Text
+              <UiText
                 style={[styles.tabText, active && styles.tabTextActive]}
-                numberOfLines={1}
+                numberOfLines={2}
+                adjustsFontSizeToFit={false}
               >
                 {t(labelKey)}
-              </Text>
+              </UiText>
             </Pressable>
           );
         })}
@@ -124,7 +139,22 @@ function AppShell() {
   );
 }
 
-export default function App() {
+function AppBootstrap() {
+  const [fontsLoaded] = useFonts({
+    NotoSansMyanmar_400Regular,
+    NotoSansMyanmar_500Medium,
+    NotoSansMyanmar_600SemiBold,
+    NotoSansMyanmar_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.fontLoading}>
+        <ActivityIndicator size="large" color={theme.accent} />
+      </View>
+    );
+  }
+
   return (
     <LocaleProvider>
       <AppShell />
@@ -132,7 +162,15 @@ export default function App() {
   );
 }
 
+export default AppBootstrap;
+
 const styles = StyleSheet.create({
+  fontLoading: {
+    flex: 1,
+    backgroundColor: theme.bg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   root: { flex: 1, backgroundColor: theme.bg },
   main: { flex: 1, paddingTop: 52 },
   center: {
@@ -151,8 +189,9 @@ const styles = StyleSheet.create({
     marginTop: 14,
     color: theme.fgMuted,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: myLh(16),
     fontSize: 16,
+    paddingHorizontal: 8,
   },
   pill: {
     marginTop: 20,
@@ -200,28 +239,33 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.fg,
     textAlign: "center",
+    lineHeight: myLh(15),
+    paddingHorizontal: 4,
   },
   tabbar: {
     flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: theme.tabBarBorder,
-    paddingBottom: 22,
-    paddingTop: 10,
+    paddingBottom: 24,
+    paddingTop: 8,
     backgroundColor: theme.tabBarBg,
   },
   tab: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 8,
-    minHeight: 52,
+    paddingVertical: 6,
+    minHeight: 56,
     justifyContent: "center",
     gap: 4,
+    paddingHorizontal: 4,
   },
   tabText: {
     color: theme.fgMuted,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.2,
+    textAlign: "center",
+    lineHeight: myLh(11),
   },
   tabTextActive: { color: theme.accent },
 });

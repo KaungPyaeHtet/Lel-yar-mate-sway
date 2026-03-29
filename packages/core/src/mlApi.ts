@@ -1,48 +1,59 @@
 /**
  * Optional Python FastAPI backend (`backend/server.py`).
  *
- * Web: set `VITE_ML_API_URL` (e.g. http://192.168.1.5:8000) in `.env` for Vite.
+ * Web: set `VITE_ML_API_URL` in `.env`; Vite injects globals via `define` (Hermes cannot parse import-meta syntax).
  * Expo: set `EXPO_PUBLIC_ML_API_URL` in `.env` or `app.config` extra.
  */
 
-function readViteMlUrl(): string {
-  if (typeof import.meta === "object" && import.meta != null && "env" in import.meta) {
-    const env = (import.meta as { env?: Record<string, unknown> }).env;
-    const raw = env?.VITE_ML_API_URL;
-    const u = typeof raw === "string" ? raw.trim() : "";
-    if (u) return u.replace(/\/$/, "");
+declare const __AGRIORA_VITE_ML_URL__: string | undefined;
+declare const __AGRIORA_VITE_DEV__: boolean | undefined;
+
+/** Injected only when the web app is built with Vite (`apps/web/vite.config.ts`). */
+function readWebViteDefine(): string {
+  const url =
+    typeof __AGRIORA_VITE_ML_URL__ !== "undefined"
+      ? String(__AGRIORA_VITE_ML_URL__).trim()
+      : "";
+  if (url) return url.replace(/\/$/, "");
+  if (
+    typeof __AGRIORA_VITE_DEV__ !== "undefined" &&
+    __AGRIORA_VITE_DEV__ === true
+  ) {
+    return "http://127.0.0.1:8000";
   }
   return "";
 }
 
-/** When Vite dev server runs and env var unset, assume API on same machine. */
-function viteDevDefaultMlUrl(): string {
-  if (typeof import.meta === "object" && import.meta != null && "env" in import.meta) {
-    const env = (import.meta as { env?: { DEV?: boolean } }).env;
-    if (env?.DEV === true) return "http://127.0.0.1:8000";
+let mlApiBaseUrlOverride: string | undefined;
+
+/**
+ * Native/Expo can set this (e.g. infer your PC’s LAN IP for Expo Go when `.env` uses localhost).
+ * Pass `null`, `undefined`, or `""` to clear.
+ */
+export function configureMlApiBaseUrl(url: string | null | undefined): void {
+  if (url == null || url === "") {
+    mlApiBaseUrlOverride = undefined;
+    return;
   }
-  return "";
+  const t = String(url).trim().replace(/\/$/, "");
+  mlApiBaseUrlOverride = t || undefined;
 }
 
 function readProcessMlUrl(): string {
-  const p =
-    typeof globalThis !== "undefined" &&
-    "process" in globalThis &&
-    typeof (globalThis as { process?: { env?: Record<string, string | undefined> } })
-      .process?.env === "object"
-      ? (globalThis as { process: { env: Record<string, string | undefined> } }).process
-          .env
-      : undefined;
-  if (!p) return "";
+  // Use `process.env.EXPO_PUBLIC_*` directly so Expo’s Babel plugin can inline it (not via a temp variable).
+  if (typeof process === "undefined" || !process.env) return "";
+  const expoUrl = process.env.EXPO_PUBLIC_ML_API_URL;
+  const viteUrl = process.env.VITE_ML_API_URL;
   const u =
-    p.EXPO_PUBLIC_ML_API_URL?.trim() ||
-    p.VITE_ML_API_URL?.trim();
+    (typeof expoUrl === "string" ? expoUrl.trim() : "") ||
+    (typeof viteUrl === "string" ? viteUrl.trim() : "");
   return u ? u.replace(/\/$/, "") : "";
 }
 
 /** Non-empty when frontend should call the Python API. */
 export function getMlApiBaseUrl(): string {
-  return readViteMlUrl() || readProcessMlUrl() || viteDevDefaultMlUrl();
+  if (mlApiBaseUrlOverride) return mlApiBaseUrlOverride;
+  return readWebViteDefine() || readProcessMlUrl();
 }
 
 export async function fetchMlSentiment(headlines: string[]): Promise<number> {

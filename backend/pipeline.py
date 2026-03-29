@@ -22,7 +22,9 @@ from .timesfm_features import TimesFMFeatureExtractor, add_timesfm_features_to_f
 
 __all__ = [
     "build_supervised_frame",
+    "build_supervised_frame_with_dates",
     "make_xgb_regressor",
+    "make_xgb_regressor_for_backtest",
     "supervised_feature_columns",
     "build_inference_feature_matrix",
     "build_inference_features_and_meta",
@@ -115,17 +117,17 @@ def build_inference_feature_matrix(
     return df
 
 
-def build_supervised_frame(
+def build_supervised_frame_with_dates(
     df: pd.DataFrame,
     price_col: str = "avg_price",
     date_col: str = "date",
     headline_col: str = "news_headline",
     rainfall_col: str = "rainfall_mm",
     temp_col: str = "temp_c",
-) -> tuple[pd.DataFrame, pd.Series]:
+) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
     """
-    Returns X_frame (features per day) and y (next-day % price change), aligned by index.
-    Drops rows without a next day or insufficient history.
+    Like build_supervised_frame but also returns observation dates (row = morning of
+    that calendar day; target is % move to the following day).
     """
     d = df.copy()
     d[date_col] = pd.to_datetime(d[date_col])
@@ -133,13 +135,11 @@ def build_supervised_frame(
 
     d = add_timesfm_features_to_frame(d, price_col=price_col, date_col=date_col)
 
-    # Price lags (same calendar row = info available that morning)
     d["price_lag1"] = d[price_col].shift(1)
     d["price_lag7"] = d[price_col].shift(7)
     d["price_lag1_rel"] = d[price_col] / d["price_lag1"] - 1.0
     d["price_lag7_rel"] = d[price_col] / d["price_lag7"] - 1.0
 
-    # Sentiment from headline(s) — one string per row; split bullets if present
     def headlines_cell(cell) -> list[str]:
         s = str(cell) if cell is not None else ""
         parts = [p.strip() for p in s.replace(";", ".").split(".") if p.strip()]
@@ -149,7 +149,6 @@ def build_supervised_frame(
         get_rice_market_sentiment(headlines_cell(h)) for h in d[headline_col]
     ]
 
-    # Target: next-day % change (supervised label for row t predicts t+1 move from t)
     nxt = d[price_col].shift(-1)
     d["target_pct_change"] = (nxt - d[price_col]) / d[price_col] * 100.0
 
@@ -165,6 +164,30 @@ def build_supervised_frame(
 
     X = d[feat_names].astype(np.float64)
     y = d["target_pct_change"].astype(np.float64)
+    obs_dates = d[date_col].dt.normalize()
+    return X, y, obs_dates
+
+
+def build_supervised_frame(
+    df: pd.DataFrame,
+    price_col: str = "avg_price",
+    date_col: str = "date",
+    headline_col: str = "news_headline",
+    rainfall_col: str = "rainfall_mm",
+    temp_col: str = "temp_c",
+) -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Returns X_frame (features per day) and y (next-day % price change), aligned by index.
+    Drops rows without a next day or insufficient history.
+    """
+    X, y, _ = build_supervised_frame_with_dates(
+        df,
+        price_col=price_col,
+        date_col=date_col,
+        headline_col=headline_col,
+        rainfall_col=rainfall_col,
+        temp_col=temp_col,
+    )
     return X, y
 
 
@@ -179,5 +202,37 @@ def make_xgb_regressor(**kwargs) -> xgb.XGBRegressor:
         random_state=42,
         n_jobs=-1,
     )
+    params.update(kwargs)
+    return xgb.XGBRegressor(**params)
+
+
+def make_xgb_regressor_for_backtest(n_train_rows: int, **kwargs) -> xgb.XGBRegressor:
+    """
+    Training-set size–aware regressor for time-series backtests.
+    With very few rows, use shallower trees and stronger L2 to limit overfitting.
+    """
+    if n_train_rows < 25:
+        params = dict(
+            n_estimators=200,
+            learning_rate=0.07,
+            max_depth=3,
+            min_child_weight=2,
+            subsample=0.88,
+            colsample_bytree=0.88,
+            reg_lambda=2.0,
+            reg_alpha=0.2,
+            random_state=42,
+            n_jobs=-1,
+        )
+    else:
+        params = dict(
+            n_estimators=400,
+            learning_rate=0.05,
+            max_depth=5,
+            subsample=0.85,
+            colsample_bytree=0.85,
+            random_state=42,
+            n_jobs=-1,
+        )
     params.update(kwargs)
     return xgb.XGBRegressor(**params)

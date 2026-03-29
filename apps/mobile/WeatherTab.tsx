@@ -14,11 +14,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { useI18n } from "./LocaleContext";
-import { theme } from "./theme";
+import { UiText } from "./UiText";
+import { myLh, theme } from "./theme";
 import { resolveCoordsForWeather } from "./weatherLocation";
 
 type Row = {
@@ -119,8 +119,13 @@ export function WeatherTab({ isActive }: { isActive: boolean }) {
       contentContainerStyle={styles.scrollContent}
     >
       <View style={styles.titleRow}>
-        <Ionicons name="partly-sunny-outline" size={28} color={theme.accent} />
-        <Text style={styles.pageTitle}>{t("weather.title")}</Text>
+        <Ionicons
+          name="partly-sunny-outline"
+          size={28}
+          color={theme.accent}
+          style={styles.titleIcon}
+        />
+        <UiText style={styles.pageTitle}>{t("weather.title")}</UiText>
       </View>
 
       <Pressable
@@ -133,44 +138,44 @@ export function WeatherTab({ isActive }: { isActive: boolean }) {
         ) : (
           <View style={styles.btnInner}>
             <Ionicons name="navigate-outline" size={22} color={theme.onAccent} />
-            <Text style={styles.btnText}>{t("weather.useLocation")}</Text>
+            <UiText style={styles.btnText}>{t("weather.useLocation")}</UiText>
           </View>
         )}
       </Pressable>
 
       {locCard && (
         <View style={[styles.card, styles.cardHighlight]}>
-          <Text style={styles.cardTitle}>{t("weather.nearYou")}</Text>
-          <Text style={styles.bigTemp}>
+          <UiText style={styles.cardTitle}>{t("weather.nearYou")}</UiText>
+          <UiText style={styles.bigTemp}>
             {Math.round(locCard.weather.temperatureC)}°C
-          </Text>
-          <Text style={styles.cond}>
+          </UiText>
+          <UiText style={styles.cond}>
             {weatherCodeLabelLocale(locCard.weather.weatherCode, wl)}
-          </Text>
-          <Text style={styles.meta}>
+          </UiText>
+          <UiText style={styles.meta}>
             {t("weather.nearestListed")}: {locCard.nearest.label} (
             {locCard.nearest.region})
-          </Text>
-          <Text style={styles.metaDim}>
+          </UiText>
+          <UiText style={styles.metaDim}>
             {locCard.weather.humidityPct != null
               ? `${t("weather.humidity")} ${locCard.weather.humidityPct}% · `
               : ""}
             {locCard.weather.windKmh != null
               ? `${t("weather.wind")} ${Math.round(locCard.weather.windKmh)} km/h`
               : ""}
-          </Text>
+          </UiText>
         </View>
       )}
 
       <View style={styles.rowBetween}>
-        <Text style={styles.sectionTitle}>{t("weather.allRegions")}</Text>
+        <UiText style={styles.sectionTitle}>{t("weather.allRegions")}</UiText>
         <Pressable
           onPress={() => void loadAllRegions()}
           disabled={loadingList}
           style={styles.refreshBtn}
         >
           <Ionicons name="refresh-outline" size={18} color={theme.accent} />
-          <Text style={styles.link}>{t("weather.refresh")}</Text>
+          <UiText style={styles.link}>{t("weather.refresh")}</UiText>
         </Pressable>
       </View>
 
@@ -180,23 +185,23 @@ export function WeatherTab({ isActive }: { isActive: boolean }) {
 
       {rows.map(({ place, weather, error }) => (
         <View key={place.id} style={styles.card}>
-          <Text style={styles.placeName}>{place.label}</Text>
-          <Text style={styles.region}>{place.region}</Text>
+          <UiText style={styles.placeName}>{place.label}</UiText>
+          <UiText style={styles.region}>{place.region}</UiText>
           {weather ? (
             <>
-              <Text style={styles.temp}>
+              <UiText style={styles.temp}>
                 {Math.round(weather.temperatureC)}°C ·{" "}
                 {weatherCodeLabelLocale(weather.weatherCode, wl)}
-              </Text>
-              <Text style={styles.metaDim}>
+              </UiText>
+              <UiText style={styles.metaDim}>
                 {weather.humidityPct != null ? `${weather.humidityPct}%` : ""}
                 {weather.windKmh != null
                   ? ` · ${Math.round(weather.windKmh)} km/h`
                   : ""}
-              </Text>
+              </UiText>
             </>
           ) : error ? (
-            <Text style={styles.err}>{error}</Text>
+            <UiText style={styles.err}>{error}</UiText>
           ) : (
             <ActivityIndicator color={theme.accent} />
           )}
@@ -211,28 +216,39 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 32 },
   titleRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
-    marginBottom: 8,
+    marginBottom: 10,
   },
+  titleIcon: { marginTop: 4 },
   pageTitle: {
     fontSize: 24,
     fontWeight: "700",
     color: theme.fg,
     flex: 1,
+    flexShrink: 1,
+    lineHeight: myLh(24),
+    paddingTop: 2,
   },
   btn: {
     backgroundColor: theme.accent,
-    paddingVertical: 16,
+    paddingVertical: 18,
     borderRadius: 12,
     alignItems: "center",
     marginBottom: 16,
-    minHeight: 52,
+    minHeight: 56,
     justifyContent: "center",
   },
   btnDisabled: { opacity: 0.7 },
   btnInner: { flexDirection: "row", alignItems: "center", gap: 10 },
-  btnText: { color: theme.onAccent, fontWeight: "700", fontSize: 17 },
+  btnText: {
+    color: theme.onAccent,
+    fontWeight: "700",
+    fontSize: 17,
+    lineHeight: myLh(17),
+    textAlign: "center",
+    paddingHorizontal: 8,
+  },
   card: {
     backgroundColor: theme.surface,
     borderRadius: 14,
@@ -252,17 +268,37 @@ const styles = StyleSheet.create({
     color: theme.accent,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginBottom: 6,
+    marginBottom: 8,
+    lineHeight: myLh(12),
   },
   bigTemp: {
     fontSize: 38,
     fontWeight: "700",
     color: theme.fg,
+    lineHeight: Math.round(38 * 1.25),
   },
-  cond: { fontSize: 17, color: theme.fg, marginBottom: 6 },
-  meta: { fontSize: 14, color: theme.fgMuted },
-  metaDim: { fontSize: 13, color: theme.fgMuted, marginTop: 4 },
-  sectionTitle: { fontSize: 17, fontWeight: "700", color: theme.fg },
+  cond: {
+    fontSize: 17,
+    color: theme.fg,
+    marginBottom: 8,
+    lineHeight: myLh(17),
+  },
+  meta: { fontSize: 14, color: theme.fgMuted, lineHeight: myLh(14) },
+  metaDim: {
+    fontSize: 13,
+    color: theme.fgMuted,
+    marginTop: 6,
+    lineHeight: myLh(13),
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: theme.fg,
+    lineHeight: myLh(17),
+    flex: 1,
+    flexShrink: 1,
+    paddingRight: 8,
+  },
   rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -270,9 +306,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   refreshBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  link: { color: theme.accent, fontWeight: "700", fontSize: 15 },
-  placeName: { fontSize: 18, fontWeight: "700", color: theme.fg },
-  region: { fontSize: 13, color: theme.fgMuted, marginBottom: 6 },
-  temp: { fontSize: 16, color: theme.fg },
-  err: { color: theme.warn, fontSize: 14 },
+  link: {
+    color: theme.accent,
+    fontWeight: "700",
+    fontSize: 15,
+    lineHeight: myLh(15),
+  },
+  placeName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.fg,
+    lineHeight: myLh(18),
+  },
+  region: {
+    fontSize: 13,
+    color: theme.fgMuted,
+    marginBottom: 8,
+    lineHeight: myLh(13),
+  },
+  temp: { fontSize: 16, color: theme.fg, lineHeight: myLh(16) },
+  err: { color: theme.warn, fontSize: 14, lineHeight: myLh(14) },
 });

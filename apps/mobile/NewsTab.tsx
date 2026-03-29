@@ -10,11 +10,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { useI18n } from "./LocaleContext";
-import { theme } from "./theme";
+import { UiText } from "./UiText";
+import { myLh, theme } from "./theme";
 
 function formatWhen(ms: number, locale: "my" | "en") {
   if (!ms) return "";
@@ -79,10 +79,15 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.titleRow}>
-        <Ionicons name="newspaper-outline" size={28} color={theme.accent} />
-        <Text style={styles.pageTitle}>{t("news.title")}</Text>
+        <Ionicons
+          name="newspaper-outline"
+          size={28}
+          color={theme.accent}
+          style={styles.titleIcon}
+        />
+        <UiText style={styles.pageTitle}>{t("news.title")}</UiText>
       </View>
-      <Text style={styles.hint}>{t("news.hint")}</Text>
+      <UiText style={styles.hint}>{t("news.hint")}</UiText>
 
       <View style={styles.chipRow}>
         {chips.map(({ id, key, icon }) => (
@@ -97,11 +102,11 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
                 size={16}
                 color={filter === id ? theme.onAccent : theme.chipInactiveFg}
               />
-              <Text
+              <UiText
                 style={[styles.chipText, filter === id && styles.chipTextActive]}
               >
                 {t(key)}
-              </Text>
+              </UiText>
             </View>
           </Pressable>
         ))}
@@ -113,27 +118,27 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
         onPress={() => void load()}
       >
         <Ionicons name="refresh-outline" size={18} color={theme.accent} />
-        <Text style={styles.refreshText}>
+        <UiText style={styles.refreshText}>
           {loading ? t("news.loadingHeadlines") : t("news.refresh")}
-        </Text>
+        </UiText>
       </Pressable>
 
-      {err ? <Text style={styles.err}>{err}</Text> : null}
+      {err ? <UiText style={styles.err}>{err}</UiText> : null}
 
       {headlines.map((h) => (
         <View key={h.link} style={styles.newsItem}>
-          <Text
+          <UiText
             style={styles.newsTitle}
             onPress={() => void Linking.openURL(h.link)}
           >
             {h.title}
-          </Text>
-          <Text style={styles.newsMeta}>
+          </UiText>
+          <UiText style={styles.newsMeta}>
             {h.feedLabel}
             {h.pubDateMs
               ? ` · ${formatWhen(h.pubDateMs, locale === "my" ? "my" : "en")}`
               : ""}
-          </Text>
+          </UiText>
         </View>
       ))}
     </ScrollView>
@@ -145,21 +150,25 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 32 },
   titleRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
-    marginBottom: 8,
+    marginBottom: 10,
   },
+  titleIcon: { marginTop: 4 },
   pageTitle: {
     fontSize: 24,
     fontWeight: "700",
     color: theme.fg,
     flex: 1,
+    flexShrink: 1,
+    lineHeight: myLh(24),
+    paddingTop: 2,
   },
   hint: {
     color: theme.fgMuted,
     fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 12,
+    lineHeight: myLh(15),
+    marginBottom: 14,
   },
   chipRow: {
     flexDirection: "row",
@@ -168,8 +177,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderRadius: 999,
     backgroundColor: theme.surface,
     borderWidth: 1,
@@ -184,6 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: theme.chipInactiveFg,
+    lineHeight: myLh(14),
   },
   chipTextActive: { color: theme.onAccent },
   refresh: {
@@ -193,10 +203,20 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: 10,
   },
-  refreshText: { color: theme.accent, fontWeight: "700", fontSize: 15 },
-  err: { color: theme.warn, marginBottom: 10, fontSize: 15 },
+  refreshText: {
+    color: theme.accent,
+    fontWeight: "700",
+    fontSize: 15,
+    lineHeight: myLh(15),
+  },
+  err: {
+    color: theme.warn,
+    marginBottom: 10,
+    fontSize: 15,
+    lineHeight: myLh(15),
+  },
   newsItem: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
   },
@@ -204,12 +224,12 @@ const styles = StyleSheet.create({
     color: theme.link,
     fontSize: 16,
     fontWeight: "700",
-    lineHeight: 24,
+    lineHeight: myLh(16),
   },
   newsMeta: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 13,
     color: theme.fgMuted,
-    lineHeight: 18,
+    lineHeight: myLh(13),
   },
 });

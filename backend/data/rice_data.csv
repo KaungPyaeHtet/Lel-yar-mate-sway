@@ -1,31 +1,25 @@
 date,avg_price,rainfall_mm,temp_c,news_headline
-2024-01-01,42.10,4.2,28.5,Rice futures steady as monsoon outlook improves for key growing regions.
-2024-01-02,42.35,0.0,30.1,Export ban rumors weigh on Asian rice benchmarks amid supply fears.
-2024-01-03,41.90,12.4,27.3,Drought in northern belt raises concern over paddy yields this season.
-2024-01-04,42.05,6.1,29.0,Bumper harvest reports from delta states cap upside price momentum.
-2024-01-05,42.80,18.2,26.4,Flooding along major rivers disrupts logistics and warehouse stocks.
-2024-01-06,43.10,3.5,28.9,Strong export demand from neighboring countries supports local prices.
-2024-01-07,42.65,2.1,31.2,Government releases strategic reserves to cool retail rice inflation.
-2024-01-08,42.40,0.0,32.0,Cyclone threat prompts precautionary buying in wholesale markets.
-2024-01-09,42.95,8.8,27.8,Record harvest expected after good monsoon rains across the basin.
-2024-01-10,43.20,1.2,30.5,Heatwave stresses irrigation systems; farmers face higher input costs.
-2024-01-11,43.05,5.0,29.1,Rice steady; traders watch export policy after regional drought reports.
-2024-01-12,42.70,14.0,25.6,Heavy monsoon rainfall improves reservoir levels for irrigation.
-2024-01-13,42.55,7.3,28.0,Wholesale prices ease slightly as new crop arrivals increase supply.
-2024-01-14,42.90,0.5,31.4,Export ban speculation returns after flood damage to coastal warehouses.
-2024-01-15,43.40,4.4,28.7,Strong demand from importers lifts benchmark quotes in thin trade.
-2024-01-16,43.25,9.1,27.2,Analysts cite bumper crop potential following favorable monsoon onset.
-2024-01-17,43.60,0.0,32.5,Heatwave concerns support prices despite adequate buffer stocks.
-2024-01-18,43.45,6.6,29.3,Logistics disruptions from flooding keep regional spreads elevated.
-2024-01-19,43.80,3.2,28.0,Export surge from competing origins caps upside for local exporters.
-2024-01-20,44.10,11.0,26.1,Drought risk in secondary growing areas keeps risk premium on futures.
-2024-01-21,44.00,2.8,30.0,Market consolidates as government signals no immediate export restrictions.
-2024-01-22,43.75,8.5,27.5,Good monsoon coverage reported; sentiment improves for kharif planting.
-2024-01-23,43.90,1.0,31.0,Shortage fears ease after release of weekly stock position data.
-2024-01-24,44.25,0.0,33.2,Heatwave persists; irrigation costs rise for late-season paddies.
-2024-01-25,44.40,15.5,25.8,Flood alerts along major rivers trigger temporary movement restrictions.
-2024-01-26,44.15,4.0,28.4,Prices soften as harvest pressure offsets export ban worries.
-2024-01-27,44.30,5.5,29.0,Cyclone tracking models show low threat; markets unwind risk premium.
-2024-01-28,44.55,0.0,30.8,Export ban on competitor origin redirects demand to domestic sellers.
-2024-01-29,44.70,7.1,27.9,Monsoon withdrawal normal; soil moisture adequate for rabi preparation.
-2024-01-30,44.85,2.2,28.6,Bumper yield surveys support bearish bias in longer-dated contracts.
+2026-03-01,195000.0,3.3,29.0,Rice wholesale steady as mandi arrivals pick up after the holiday.
+2026-03-02,195000.0,7.5,29.9,Export demand supports local paddy quotes; traders watch policy signals.
+2026-03-03,195000.0,11.6,30.8,Monsoon outlook improves for delta plantings; futures drift slightly lower.
+2026-03-04,195000.0,15.8,31.2,Logistics delays along main corridors keep wholesale spreads wide.
+2026-03-05,195000.0,4.0,32.1,Bumper harvest chatter caps upside despite tight warehouse stocks.
+2026-03-06,195000.0,8.2,33.0,Heatwave warnings lift irrigation costs; farmgate paddy bids firm.
+2026-03-07,195000.0,12.3,33.5,Regional buyers return after floods; milled rice moves in thin trade.
+2026-03-08,195000.0,16.5,34.4,Government buffer release cools retail rice inflation in urban markets.
+2026-03-09,195000.0,4.7,35.3,Rice wholesale steady as mandi arrivals pick up after the holiday.
+2026-03-10,195000.0,8.8,29.0,Export demand supports local paddy quotes; traders watch policy signals.
+2026-03-11,195000.0,13.0,29.9,Monsoon outlook improves for delta plantings; futures drift slightly lower.
+2026-03-12,195000.0,17.2,30.8,Logistics delays along main corridors keep wholesale spreads wide.
+2026-03-13,195000.0,5.3,31.2,Bumper harvest chatter caps upside despite tight warehouse stocks.
+2026-03-14,195000.0,9.5,32.1,Heatwave warnings lift irrigation costs; farmgate paddy bids firm.
+2026-03-15,195000.0,13.7,33.0,Regional buyers return after floods; milled rice moves in thin trade.
+2026-03-16,195000.0,17.8,33.5,Government buffer release cools retail rice inflation in urban markets.
+2026-03-17,198333.33,6.0,34.4,Rice wholesale steady as mandi arrivals pick up after the holiday.
+2026-03-18,201666.67,10.2,35.3,Export demand supports local paddy quotes; traders watch policy signals.
+2026-03-19,205000.0,14.4,29.0,Monsoon outlook improves for delta plantings; futures drift slightly lower.
+2026-03-20,212500.0,2.5,29.9,Logistics delays along main corridors keep wholesale spreads wide.
+2026-03-21,212500.0,6.7,30.8,Bumper harvest chatter caps upside despite tight warehouse stocks.
+2026-03-22,212500.0,10.9,31.2,Heatwave warnings lift irrigation costs; farmgate paddy bids firm.
+2026-03-23,215000.0,15.0,32.1,Regional buyers return after floods; milled rice moves in thin trade.
+2026-03-24,217500.0,3.2,33.0,Government buffer release cools retail rice inflation in urban markets.

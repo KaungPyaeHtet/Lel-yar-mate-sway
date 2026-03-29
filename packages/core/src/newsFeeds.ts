@@ -52,6 +52,38 @@ export const NEWS_FEED_SOURCES: readonly NewsFeedSource[] = [
       "https://news.google.com/rss/search?q=Southeast+Asia+economy&hl=en-US&gl=US&ceid=US:en",
   },
   {
+    id: "google-oil-energy",
+    label: "Google News — ဆီ/စွမ်းအင် ဈေး (အင်္ဂလိပ်)",
+    lang: "en",
+    scope: "international",
+    rssUrl:
+      "https://news.google.com/rss/search?q=crude+oil+OR+brent+OR+fuel+prices+OR+energy+commodity&hl=en-US&gl=US&ceid=US:en",
+  },
+  {
+    id: "google-transport-logistics",
+    label: "Google News — ပို့ဆောင်ရေး (အင်္ဂလိပ်)",
+    lang: "en",
+    scope: "international",
+    rssUrl:
+      "https://news.google.com/rss/search?q=shipping+freight+logistics+supply+chain+Asia&hl=en-US&gl=US&ceid=US:en",
+  },
+  {
+    id: "google-myanmar-policy",
+    label: "Google News — မြန်မာ မူဝါဒ/စီးပွား (အင်္ဂလိပ်)",
+    lang: "en",
+    scope: "myanmar",
+    rssUrl:
+      "https://news.google.com/rss/search?q=Myanmar+government+OR+policy+OR+economy+OR+export+OR+import&hl=en-US&gl=US&ceid=US:en",
+  },
+  {
+    id: "google-weather-ag",
+    label: "Google News — ရာသီဥတု/စိုက်ပျိုး (အင်္ဂလိပ်)",
+    lang: "en",
+    scope: "international",
+    rssUrl:
+      "https://news.google.com/rss/search?q=monsoon+OR+drought+OR+flood+OR+cyclone+agriculture+crop+rice&hl=en-US&gl=US&ceid=US:en",
+  },
+  {
     id: "mizzima-en",
     label: "Mizzima English",
     lang: "en",
@@ -308,35 +340,123 @@ export async function loadAggregatedHeadlines(options?: {
   return list.slice(0, maxTotal);
 }
 
-/** Feeds skewed to rice / Myanmar ag / policy — English + Burmese titles for the price model. */
-const RICE_MARKET_CONTEXT_SOURCE_IDS: readonly string[] = [
+/** Feeds for ag prices: commodities, oil, logistics, policy, weather, Myanmar + region. */
+const AG_MARKET_CONTEXT_SOURCE_IDS: readonly string[] = [
   "google-ag-commodities",
+  "google-oil-energy",
+  "google-transport-logistics",
+  "google-myanmar-policy",
+  "google-weather-ag",
+  "google-myanmar",
+  "google-seasia",
   "irrawaddy",
   "bbc-burmese",
+  "mizzima-en",
 ];
 
+const _TOPIC_OIL =
+  /\b(oil|crude|brent|wti|diesel|petrol|gasoline|fuel|opec|energy)\b/i;
+const _TOPIC_TRANSPORT =
+  /\b(transport|logistics|shipping|freight|cargo|port|vessel|supply chain)\b/i;
+const _TOPIC_GOV =
+  /\b(government|ministry|policy|parliament|sanction|subsidy|tariff|regulation|export ban|import ban)\b/i;
+const _TOPIC_AG =
+  /\b(agriculture|farming|farm|crop|harvest|paddy|rice|wheat|grain|fertilizer|commodity|food security|inflation)\b/i;
+const _TOPIC_WEATHER =
+  /\b(weather|monsoon|rain|drought|flood|cyclone|typhoon|heatwave|climate|storm)\b/i;
+const _TOPIC_MM =
+  /\b(myanmar|burma|yangon|mandalay|asean)\b/i;
+const _TOPIC_MARKET =
+  /\b(price|prices|market|futures|wholesale|mandi|export|import)\b/i;
+const _DIR_UP =
+  /\b(rise|risen|raises|raising|surge|surges|jump|soar|gain|gains|higher|upward|increase|increases|climb|rally|spike)\b/i;
+const _DIR_DOWN =
+  /\b(fall|falls|fell|drop|drops|plunge|slide|slump|lower|downward|decrease|decline|crash|cut|cuts|ease|tumble)\b/i;
+
 /**
- * Short text blob for ClimateBERT / XGBoost news_headline: newest unique titles, capped.
+ * Heuristic relevance for ag / commodity price modelling (English-heavy RSS).
+ * Higher = more likely to move oil, logistics, policy, weather, or price direction.
  */
-export async function fetchRiceMarketNewsContext(
-  maxTitles = 10,
-  maxChars = 4000
+export function scoreAgMarketHeadlineRelevance(title: string): number {
+  const t = title.trim();
+  if (!t) return 0;
+  let s = 0;
+  if (_TOPIC_AG.test(t)) s += 5;
+  if (_TOPIC_OIL.test(t)) s += 4;
+  if (_TOPIC_WEATHER.test(t)) s += 4;
+  if (_TOPIC_TRANSPORT.test(t)) s += 3;
+  if (_TOPIC_GOV.test(t)) s += 3;
+  if (_TOPIC_MM.test(t)) s += 2;
+  if (_TOPIC_MARKET.test(t)) s += 2;
+  if (_DIR_UP.test(t)) s += 1;
+  if (_DIR_DOWN.test(t)) s += 1;
+  return s;
+}
+
+function headlineWithinRecency(
+  pubDateMs: number,
+  recencyDays: number,
+  nowMs: number
+): boolean {
+  if (!pubDateMs || pubDateMs <= 0) return true;
+  return pubDateMs >= nowMs - recencyDays * 86_400_000;
+}
+
+export type AgMarketNewsContextOptions = {
+  maxTitles?: number;
+  maxChars?: number;
+  /** Only headlines from the last N calendar days (unknown pubDate kept). */
+  recencyDays?: number;
+  maxItemsPerFeed?: number;
+};
+
+/**
+ * Ranked RSS titles for the ML pipeline: policy, oil, logistics, weather, ag, Myanmar.
+ * Prefers the last `recencyDays` (default 3); falls back to broader pool if too few matches.
+ */
+export async function fetchAgMarketNewsContext(
+  options?: AgMarketNewsContextOptions
 ): Promise<string> {
+  const maxTitles = options?.maxTitles ?? 18;
+  const maxChars = options?.maxChars ?? 4500;
+  const recencyDays = options?.recencyDays ?? 3;
+  const maxItemsPerFeed = options?.maxItemsPerFeed ?? 8;
+
   const sources = NEWS_FEED_SOURCES.filter((s) =>
-    RICE_MARKET_CONTEXT_SOURCE_IDS.includes(s.id)
+    AG_MARKET_CONTEXT_SOURCE_IDS.includes(s.id)
   );
   const settled = await Promise.allSettled(
-    sources.map((s) => fetchHeadlinesFromSource(s, 6))
+    sources.map((s) => fetchHeadlinesFromSource(s, maxItemsPerFeed))
   );
   const rows: NewsHeadline[] = [];
   for (const r of settled) {
     if (r.status !== "fulfilled") continue;
     rows.push(...r.value);
   }
-  rows.sort((a, b) => b.pubDateMs - a.pubDateMs);
+
+  const nowMs = Date.now();
+  const inWindow = rows.filter((h) =>
+    headlineWithinRecency(h.pubDateMs, recencyDays, nowMs)
+  );
+  const pool = inWindow.length >= 6 ? inWindow : rows;
+
+  const scored = pool.map((h) => ({
+    h,
+    score: scoreAgMarketHeadlineRelevance(h.title),
+  }));
+  let use = scored.filter((x) => x.score >= 5);
+  if (use.length < 6) use = scored.filter((x) => x.score >= 3);
+  if (use.length < 4) use = scored.filter((x) => x.score >= 1);
+  if (use.length < 3) use = scored;
+
+  use.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return b.h.pubDateMs - a.h.pubDateMs;
+  });
+
   const seen = new Set<string>();
   const uniq: string[] = [];
-  for (const h of rows) {
+  for (const { h } of use) {
     const t = h.title.replace(/\s+/g, " ").trim();
     if (!t) continue;
     const k = t.toLowerCase();
@@ -350,7 +470,17 @@ export async function fetchRiceMarketNewsContext(
 }
 
 /**
- * Split `fetchRiceMarketNewsContext` output (titles joined with ". ") into lines for UI.
+ * @deprecated Prefer {@link fetchAgMarketNewsContext}; kept for call-site compatibility.
+ */
+export async function fetchRiceMarketNewsContext(
+  maxTitles = 18,
+  maxChars = 4500
+): Promise<string> {
+  return fetchAgMarketNewsContext({ maxTitles, maxChars, recencyDays: 3 });
+}
+
+/**
+ * Split ag-market context output (titles joined with ". ") into lines for UI.
  */
 export function riceNewsContextToLines(text: string, maxLines = 8): string[] {
   if (!text.trim()) return [];

@@ -46,7 +46,7 @@ export function weatherCodeLabelLocale(
   locale: "en" | "my"
 ): string {
   if (locale === "en") return weatherCodeLabel(code);
-  if (code === 0) return "ကင်းလွင်";
+  if (code === 0) return "တိမ်နည်းပါး — ကောင်းကင် ကင်းလွင်";
   if (code <= 3) return "အများအားဖြင့် ကြည်လင် / တိမ်";
   if (code === 45 || code === 48) return "မြူမှောင်";
   if (code >= 51 && code <= 57) return "သင်းသင်း ရွာသွန်းမှု";

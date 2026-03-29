@@ -26,11 +26,17 @@ export type AppStringKey =
   | "about.title"
   | "about.body"
   | "market.title"
-  | "market.hint"
   | "market.searchPlaceholder"
   | "market.searchAria"
   | "market.itemsAria"
   | "market.selected"
+  | "market.chooseItem"
+  | "market.itemFilterPlaceholder"
+  | "market.itemListHint"
+  | "market.itemListCap"
+  | "market.forecastMlSource"
+  | "market.forecastHeuristicSource"
+  | "market.forecastAwaitingMl"
   | "market.yangonWeather"
   | "market.myLocation"
   | "market.loading"
@@ -42,7 +48,6 @@ export type AppStringKey =
   | "market.factorTrend"
   | "market.factorNews"
   | "market.factorWeather"
-  | "market.predictionDisclaimer"
   | "market.mlBackendTitle"
   | "market.mlBackendHint"
   | "market.mlBackendFetch"
@@ -51,8 +56,10 @@ export type AppStringKey =
   | "market.mlBackendNeedHistory"
   | "market.mlBackendNoUrl"
   | "market.chartTitle"
-  | "market.riceSeedNote"
-  | "market.autoHint"
+  | "market.chartDataThrough"
+  | "market.forecastFromLatest"
+  | "market.forecastForDate"
+  | "market.mlUsesLatestDate"
   | "market.pythonAutoNote"
   | "market.forecastPriceTitle"
   | "market.weatherFallback"
@@ -65,15 +72,17 @@ export type AppStringKey =
   | "market.adviceNeutralSub"
   | "market.adviceDisclaimer"
   | "market.adviceDetailsToggle"
-  | "market.adviceDetailsModelMove"
-  | "market.adviceDetailsSignal"
-  | "market.adviceDetailsSignalNote"
-  | "market.adviceDetailsSentiment"
-  | "market.adviceDetailsSentimentHint"
-  | "market.adviceDetailsNewsLabel"
-  | "market.adviceDetailsWeather"
-  | "market.adviceDetailsPattern"
-  | "market.adviceDetailsScreenRule"
+  | "market.adviceWhySummary"
+  | "market.adviceStrengthSoft"
+  | "market.adviceStrengthMid"
+  | "market.adviceStrengthFirm"
+  | "market.adviceWhyTrust"
+  | "market.adviceWhyInputs"
+  | "market.adviceWhyHeadlines"
+  | "market.adviceWhyHeadlinesMore"
+  | "market.adviceWhyWeather"
+  | "market.adviceWhyTrend"
+  | "market.adviceWhySimpleRead"
   | "market.adviceDetailsPlaceholderNews"
   | "news.title"
   | "news.hint"
@@ -115,12 +124,11 @@ export type AppStringKey =
 const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
   my: {
     "tab.home": "ပင်မ",
-    "tab.market": "စပါးစျေး",
+    "tab.market": "စျေးဈေး",
     "tab.weather": "ရာသီဥတု",
     "tab.news": "သတင်း",
     "tab.settings": "ချိန်ညှိမှု",
-    "home.tag":
-      "သတင်းမဖတ်ဖြစ်သော စိုက်ပျိုးရှင်များအတွက် သတင်းနှင့် ဈေးလမ်းကြောင်း ခန့်မှန်းချက်။",
+    "home.tag": "ဈေးလမ်းကြောင်း ကြိုသိဖို့ — သတင်းမလိုပါဘူး။",
     "home.pill": "",
     "settings.title": "ချိန်ညှိမှု",
     "settings.languageTitle": "ဘာသာစကား",
@@ -129,13 +137,21 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "about.title": "အကြောင်း",
     "about.body":
       "ကျွန်ုပ်တို့သည် မြန်မာ စိုက်ပျိုးရှင်များ အတွက် Agriora အဖွဲ့ဖြစ်ပါသည်။\n\nစိုက်ပျိုးရှင်အများစုမှာ နေ့စဉ် စျေးကွက် သတင်းများ သို့မဟုတ် ကမ္ဘာ့ကုန်ဈေး သတင်းများကို မဖတ်ဖြစ်ကြပါ။ သို့သော် ထိုသတင်းများက ဈေးနှုန်း တက်ခြင်း သို့ ကျခြင်းနှင့် ဆက်နွယ်နေတတ်ပါသည်။\n\nAgriora သည် သတင်းများကို စုစည်းကာ ခန့်မှန်းချက်နှင့် ပေါင်းစပ်၍ ဈေးလမ်းကြောင်း ပြသပေးပါသည်။ သတင်းမဖတ်ဖြစ်သော်လည်း ဈေးအပြောင်းအလဲကို ကြိုတင်သိရှိပြီး ရောင်းဝယ်ချိန်ကို ပိုကောင်းအောင် စီစဉ်နိုင်စေရန်၊ စိုက်ပျိုးသူများ အကျိုးအမြတ် ရရှိရေး ကူညီပေးရန် ရည်ရွယ်ပါသည်။",
-    "market.title": "စပါးဈေး ဈေးနှုန်းများ",
-    "market.hint":
-      "မှီငြမ်း စပါးဈေး တစ်မျိုးသာ။ အလယ်ဈေး မှတ်တမ်း ({generated})။",
-    "market.searchPlaceholder": "စပါး အမျိုးအစား ရှာရန်…",
-    "market.searchAria": "စပါး ရှာရန်",
-    "market.itemsAria": "စပါး စာရင်း",
+    "market.title": "စိုက်ပျိုးကုန်စည် ဈေးနှုန်းများ",
+    "market.searchPlaceholder": "ပစ္စည်း ရှာရန်…",
+    "market.searchAria": "ပစ္စည်း ရှာရန်",
+    "market.itemsAria": "ပစ္စည်းစာရင်း",
     "market.selected": "ရွေးထားသည်",
+    "market.chooseItem": "ပစ္စည်း ရွေးပါ (data.xlsx)",
+    "market.itemFilterPlaceholder": "အမည် ရှာရန်…",
+    "market.itemListHint": "ဖော်ပြထား {shown} / စုစုပေါင်း {total}",
+    "market.itemListCap":
+      "စာရင်း ၁၂၀ ထိသာ ပြပါသည် — ပိုရှာရန် အမည် ရိုက်ရှာပါ။",
+    "market.forecastMlSource":
+      "Python မော်ဒယ်၏ နောက်တစ်ရက် % ကို နောက်ဆုံး အလယ်ဈေးနှင့် မြှောက်ထားသည်။",
+    "market.forecastHeuristicSource":
+      "သတင်း/ရာသီဥတု စည်းမျဉ်း ခန့်မှန်း (ML မရရှိသေးပါ)။",
+    "market.forecastAwaitingMl": "ML ရလဒ် စောင့်နေသည်…",
     "market.yangonWeather": "ရန်ကုန် ရာသီဥတု",
     "market.myLocation": "ကျွန်ုပ် တည်နေရာ",
     "market.loading": "ဖတ်နေသည်…",
@@ -148,22 +164,25 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.factorTrend": "လမ်းကြောင်း",
     "market.factorNews": "သတင်း",
     "market.factorWeather": "ရာသီဥတု",
-    "market.predictionDisclaimer":
-      "ပြသရန် မော်ဒယ်သာ — ငွေကြေး၊ ဥပဒေ သို့ စိုက်ပျိုးရေးအကြံ မဟုတ်ပါ။",
     "market.mlBackendTitle": "Python မော်ဒယ် (နောက်တစ်ရက် %)",
     "market.mlBackendHint":
       "ဒေဗလုပ်ချိန်တွင် ပုံသေ http://127.0.0.1:8000 သုံးသည်။ ဖုန်းမှ ဖွင့်လျှင် ကွန်ပြူတာ LAN IP ဖြင့် apps/web/.env.development ကို ပြင်ပါ။ ဈေး မှတ်တမ်း ၈ ကြိမ် လိုအပ်သည်။",
     "market.mlBackendFetch": "Python API မှ ခန့်မှန်း",
     "market.mlBackendLoading": "ML ဆာဗာ ဆက်သွယ်နေသည်…",
     "market.mlBackendResult": "နောက်တစ်ရက် ဈေးပြောင်းနှုန်း ခန့်မှန်း (%)",
-    "market.mlBackendNeedHistory": "ဤပစ္စည်းတွင် ဈေး မှတ်တမ်း ၈ ကြိမ် မလုံလောက်ပါ။",
+    "market.mlBackendNeedHistory":
+      "ဤအတန်းတွင် ဈေးနှုန်း မှတ်တမ်း မတွေ့ပါ (data.xlsx စစ်ပါ)။",
     "market.mlBackendNoUrl":
       "ML API မတွေ့ပါ။ npm run ml:api ဖွင့်ပြီး ဝဘ်ကို ပြန်စတင်ပါ (သို့ .env မှာ VITE_ML_API_URL ထည့်ပါ)။",
     "market.chartTitle": "ယခင်ဈေးများ (အလယ်ဈေး)",
-    "market.riceSeedNote":
-      "data.xlsx တွင် စပါးစာကြောင်း မတွေ့သေးပါ — ပြသချက်အတွက် စပါးနမူနာ ဈေးတွဲကို သုံးထားသည်။ စပါးထည့်ပြီး script ပြန်တင်ပါ။",
-    "market.autoHint":
-      "သတင်းနှင့် ရာသီဥတုကို မျက်နှာပြင်တွင် မပြဘဲ နောက်ခံတွင် သုံးပါသည် — ခန့်မှန်းချက် နှင့် ML မော်ဒယ်အတွက်။",
+    "market.chartDataThrough":
+      "ပြထားသော အလယ်ဈေးများ — နောက်ဆုံး မှတ်တမ်း နေ့ရက် {date}",
+    "market.forecastFromLatest":
+      "ခန့်မှန်းသည် {date} က အလယ်ဈေးကို အခြေပြု၍ ဖြစ်သည် (နောက်ရက်ခန့် ညွှန်း၊ တရားဝင် ကြေညာချက် မဟုတ်ပါ)။",
+    "market.forecastForDate":
+      "ဤခန့်မှန်းဈေးသည် မနက်ဖြန် ({date}) အတွက် ဖြစ်သည်။",
+    "market.mlUsesLatestDate":
+      "နောက်တစ်ရက် လမ်းညွှန်သည် {date} ထိ မှတ်တမ်းနောက်က နောက်တစ်ရက် ပြောင်းလမ်းကြောင်း ကြည့်သည်။",
     "market.pythonAutoNote":
       "သတင်း/ရာသီဥတု နောက်ခံမှ ထည့်သွင်းပြီး နောက်တစ်ရက် ဈေးပြောင်းနှုန်း (%) ကို ML ဆာဗာသို့ အလိုအလျောက် တောင်းပါသည်။",
     "market.forecastPriceTitle": "ခန့်မှန်း ဈေးနှုန်း",
@@ -178,25 +197,22 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.adviceNeutralSub": "တက်ကျ ပြင်းထန်မှု မထင်ရှားပါ — ဆက်လက် စောင့်ကြည့်ပါ။",
     "market.adviceDisclaimer":
       "မော်ဒယ် အကြံပြုချက်သာ — ငွေရေးကြေးရေး အကြံဉာဏ် မဟုတ်ပါ။",
-    "market.adviceDetailsToggle": "ဘာကြောင့် ဒီလမ်းညွှန်လဲ (အသေးစိတ်)",
-    "market.adviceDetailsModelMove":
-      "XGBoost မော်ဒယ် ခန့်မှန်း နောက်တစ်ရက် ပြောင်းနှုန်း — {pct}",
-    "market.adviceDetailsSignal":
-      "အချက်ပြင်းအား (ပြည်စုံနိုင်ခြေ မဟုတ်ပါ) — လွန်ခဲ့သော ~{pct}%",
-    "market.adviceDetailsSignalNote":
-      "နောက်တစ်ရက် ဈေးကို အာမခံမရပါ။ အချက်ပြင်းအားသည် ခန့်မှန်းချက် အရွယ်အစားနှင့် သတင်း feature ကို အကြမ်းဖွဲ့ပေါင်းစပ်ထားသည်။",
-    "market.adviceDetailsSentiment":
-      "သတင်း sentiment feature (ClimateBERT မျဉ်းကြောင်း) — {score}",
-    "market.adviceDetailsSentimentHint":
-      "ဒီအမှတ်သည် မော်ဒယ်ထဲ သုံးသော ခေါင်းစဉ်များပေါ် မူတည်သည်။ အပေါ်/အောက် ဈေးလမ်းကြောင်းနှင့် ပေါင်းစပ်ပါသည်။",
-    "market.adviceDetailsNewsLabel":
-      "မော်ဒယ်သို့ ပို့ထားသော ခေါင်းစဉ်များ (နောက်ခံ သတင်း)",
-    "market.adviceDetailsWeather":
-      "ရာသီဥတု input — {temp}°C · {condition} · မိုးရေ {rain} mm",
-    "market.adviceDetailsPattern":
-      "မှတ်တမ်း အလယ်ဈေး — ယမန်နေ့နှင့် နှိုင်းစာရင် {d1}။ ၇ ကြိမ်အကြာကနှင့် {d7}။",
-    "market.adviceDetailsScreenRule":
-      "မျက်နှာပြင် ခန့်မှန်း (စည်းမျဉ်းမူဝါဒ သတင်းဖတ်) — {verdict}",
+    "market.adviceDetailsToggle": "အကြမ်း အကြောင်း",
+    "market.adviceWhySummary":
+      "နောက်ရက်ခန့် ဈေး {pct} လောလားဖော်ပြချက်။ ဤအကြံ့ပြင်းမှု — {strength}။",
+    "market.adviceStrengthSoft": "ပြင်းမထန်",
+    "market.adviceStrengthMid": "အလယ်",
+    "market.adviceStrengthFirm": "ပြင်းထန်",
+    "market.adviceWhyTrust": "မနက်ဖြန် ဈေးကို မည်သူမှ အာမမခံနိုင်ပါ။",
+    "market.adviceWhyInputs":
+      "ယခင်ဈေး၊ သတင်းခေါင်းစဉ်များ၊ ရာသီဥတု တို့ကို စုပေါင်းကြည့်ပါသည်။",
+    "market.adviceWhyHeadlines": "ဖတ်ထားသော သတင်းခေါင်းစဉ်အချို့",
+    "market.adviceWhyHeadlinesMore": "…နှင့် ခေါင်းစဉ် {n} ခု အခြား",
+    "market.adviceWhyWeather": "ယခု ရာသီဥတု — {temp}°C · {condition}",
+    "market.adviceWhyTrend":
+      "ယမနေ့နဲ့ နှိုင်းရင် ဈေး {d1}။ မကြာသေးမီကနဲ့ {d7}။",
+    "market.adviceWhySimpleRead":
+      "ဒီအက်ပ်၏ ခန့်မှန်း သတင်းဖတ် — {verdict}",
     "market.adviceDetailsPlaceholderNews":
       "တိုက်ရိုက် သတင်းခေါင်းစဉ် မရသေးပါ — ပုံမှန် စာကြောင်း သုံးထားသည်။",
     "news.title": "သတင်း",
@@ -243,13 +259,12 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
   },
   en: {
     "tab.home": "Home",
-    "tab.market": "Rice",
+    "tab.market": "Market",
     "tab.weather": "Weather",
     "tab.news": "News",
     "tab.settings": "Settings",
-    "home.tag":
-      "News and forecasts for growers — clearer prices even when you miss the headlines.",
-    "home.pill": "Offline-first rules",
+    "home.tag": "Ahead of the market—without reading the news.",
+    "home.pill": "",
     "settings.title": "Settings",
     "settings.languageTitle": "Language",
     "settings.languageMy": "Burmese",
@@ -257,13 +272,21 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "about.title": "About",
     "about.body":
       "We are Team Agriora — a team building for Myanmar’s farmers.\n\nMany growers do not read market and commodity news every day. Those stories still carry signals about whether prices may rise or fall.\n\nAgriora gathers relevant headlines, combines them with price trends and weather, and shows a simple forecast direction. Our goal is to help farmers plan buying and selling even when they miss the news — so they can spot opportunities and improve returns.",
-    "market.title": "Rice market prices",
-    "market.hint":
-      "Single reference rice series. Mid-price history ({generated}).",
-    "market.searchPlaceholder": "Search rice types…",
-    "market.searchAria": "Search rice items",
-    "market.itemsAria": "Rice items",
+    "market.title": "Ag wholesale prices",
+    "market.searchPlaceholder": "Filter items…",
+    "market.searchAria": "Filter market items",
+    "market.itemsAria": "Commodity list",
     "market.selected": "Selected",
+    "market.chooseItem": "Choose item (from data.xlsx)",
+    "market.itemFilterPlaceholder": "Filter by name…",
+    "market.itemListHint": "Showing {shown} of {total}",
+    "market.itemListCap":
+      "Only the first 120 rows are listed — type to filter the full sheet.",
+    "market.forecastMlSource":
+      "From Python model: latest sheet mid × (1 + next-day % estimate).",
+    "market.forecastHeuristicSource":
+      "Rule-based estimate (news/weather) while ML is unavailable.",
+    "market.forecastAwaitingMl": "Waiting for ML result…",
     "market.yangonWeather": "Yangon weather",
     "market.myLocation": "My location",
     "market.loading": "Loading…",
@@ -275,22 +298,24 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.factorTrend": "Trend",
     "market.factorNews": "News",
     "market.factorWeather": "Weather",
-    "market.predictionDisclaimer":
-      "Illustrative model only — not financial, legal, or agronomic advice.",
     "market.mlBackendTitle": "Python model (next-day %)",
     "market.mlBackendHint":
       "Dev default is http://127.0.0.1:8000. From a phone, set your PC’s LAN IP in apps/web/.env.development (or EXPO_PUBLIC_ML_API_URL for Expo). Needs 8 price observations.",
     "market.mlBackendFetch": "Fetch from Python API",
     "market.mlBackendLoading": "Calling ML server…",
     "market.mlBackendResult": "Estimated next-day price change (%)",
-    "market.mlBackendNeedHistory": "This item needs at least 8 price observations.",
+    "market.mlBackendNeedHistory":
+      "No usable price cells for this row (check data.xlsx).",
     "market.mlBackendNoUrl":
       "ML API URL unavailable. Run npm run ml:api and restart the web app, or set VITE_ML_API_URL.",
     "market.chartTitle": "Past prices (midpoint)",
-    "market.riceSeedNote":
-      "No rice rows in data.xlsx yet — showing demo rice series on the same dates. Add rice rows and re-run xlsx_to_market.py.",
-    "market.autoHint":
-      "Headlines and weather are not shown here — they load in the background for the price estimate and ML model.",
+    "market.chartDataThrough":
+      "Mid prices shown — last record date: {date}",
+    "market.forecastFromLatest":
+      "This estimate builds on the latest midpoint ({date}); it hints at the next period, not an official quote.",
+    "market.forecastForDate": "This estimated price is for tomorrow ({date}).",
+    "market.mlUsesLatestDate":
+      "Next-day guide looks at movement after your latest price row ({date}).",
     "market.pythonAutoNote":
       "Background news and weather are included when requesting the next-day change (%) from the ML server.",
     "market.forecastPriceTitle": "Estimated price",
@@ -308,24 +333,22 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
       "No strong move expected — keep monitoring the market.",
     "market.adviceDisclaimer":
       "Model guidance only — not financial advice.",
-    "market.adviceDetailsToggle": "Why this recommendation? (details)",
-    "market.adviceDetailsModelMove":
-      "XGBoost next-day move estimate — {pct}",
-    "market.adviceDetailsSignal":
-      "Signal strength (not a true probability) — about {pct}%",
-    "market.adviceDetailsSignalNote":
-      "The model cannot guarantee tomorrow’s price. Strength blends how large the predicted move is with how strong the news feature is.",
-    "market.adviceDetailsSentiment":
-      "News sentiment feature (ClimateBERT-style) — {score}",
-    "market.adviceDetailsSentimentHint":
-      "This score comes from the same headlines fed to the model and is mixed with price patterns.",
-    "market.adviceDetailsNewsLabel": "Headlines sent to the model (background feed)",
-    "market.adviceDetailsWeather":
-      "Weather inputs — {temp}°C · {condition} · rainfall {rain} mm",
-    "market.adviceDetailsPattern":
-      "Recorded mid prices — vs previous day: {d1}; vs 7 observations back: {d7}.",
-    "market.adviceDetailsScreenRule":
-      "On-screen price estimate (rule-based news read) — {verdict}",
+    "market.adviceDetailsToggle": "Why we suggest this",
+    "market.adviceWhySummary":
+      "Roughly {pct} change hinted for the next day. How strong that hint is: {strength}.",
+    "market.adviceStrengthSoft": "Weak",
+    "market.adviceStrengthMid": "Medium",
+    "market.adviceStrengthFirm": "Strong",
+    "market.adviceWhyTrust": "No one can promise tomorrow’s market price.",
+    "market.adviceWhyInputs":
+      "We blend past prices, news titles, and today’s weather.",
+    "market.adviceWhyHeadlines": "Some news titles we looked at",
+    "market.adviceWhyHeadlinesMore": "…and {n} more titles",
+    "market.adviceWhyWeather": "Weather now — {temp}°C · {condition}",
+    "market.adviceWhyTrend":
+      "Vs yesterday’s mid: {d1}. Vs a week back on the chart: {d7}.",
+    "market.adviceWhySimpleRead":
+      "This app’s simple news read says: {verdict}",
     "market.adviceDetailsPlaceholderNews":
       "Live headlines were not available — a default text line was used.",
     "news.title": "News",

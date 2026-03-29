@@ -34,15 +34,20 @@ export {
   type AppStringKey,
 } from "./appLocale";
 
+export { formatLongDateLabel, tomorrowDateIsoLocal } from "./localeFormat";
+
 export {
   NEWS_FEED_SOURCES,
   NEWS_FEED_SOURCE_HOSTNAMES,
   configureNewsRssFetch,
+  fetchAgMarketNewsContext,
   fetchHeadlinesFromSource,
   loadAggregatedHeadlines,
   fetchRiceMarketNewsContext,
   riceNewsContextToLines,
   parseRssXml,
+  scoreAgMarketHeadlineRelevance,
+  type AgMarketNewsContextOptions,
   type NewsFeedScope,
   type NewsFeedSource,
   type NewsFilter,
@@ -50,11 +55,15 @@ export {
 } from "./newsFeeds";
 
 export {
+  forecastKyatFromMlPct,
+  getDefaultMarketItemForUi,
   getMarketItemById,
   latestMidpoint,
   latestObservation,
   midPriceMomentumPct,
+  observationMidsOldestToNewest,
   predictItemPrice,
+  recentMidPricesForInference,
   recentMidPricesForMl,
   searchMarketItems,
   weatherPriceModifier,
@@ -68,6 +77,7 @@ export {
 } from "./market";
 
 export {
+  configureMlApiBaseUrl,
   fetchMlNextDayDetail,
   fetchMlNextDayPct,
   fetchMlSentiment,
@@ -87,6 +97,7 @@ export {
   RICE_MARKET_USES_SEED_DATA,
   getRiceMarketItemById,
   getPrimaryRiceMarketItem,
+  initialMarketTabItemId,
   isRiceMarketItemFromSheet,
   riceMidSeriesForChart,
   searchRiceMarketItems,

@@ -1,7 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useI18n } from "./LocaleContext";
-import { theme } from "./theme";
+import { UiText } from "./UiText";
+import { myLh, theme } from "./theme";
 
 export function SettingsTab() {
   const { locale, setLocale, t } = useI18n();
@@ -12,14 +13,19 @@ export function SettingsTab() {
       contentContainerStyle={styles.scrollContent}
     >
       <View style={styles.titleRow}>
-        <Ionicons name="settings-outline" size={28} color={theme.accent} />
-        <Text style={styles.pageTitle}>{t("settings.title")}</Text>
+        <Ionicons
+          name="settings-outline"
+          size={28}
+          color={theme.accent}
+          style={styles.titleIcon}
+        />
+        <UiText style={styles.pageTitle}>{t("settings.title")}</UiText>
       </View>
 
       <View style={styles.card}>
         <View style={styles.sectionLabelRow}>
           <Ionicons name="language-outline" size={16} color={theme.fgMuted} />
-          <Text style={styles.sectionLabel}>{t("settings.languageTitle")}</Text>
+          <UiText style={styles.sectionLabel}>{t("settings.languageTitle")}</UiText>
         </View>
         <View style={styles.langRow}>
           <Pressable
@@ -32,14 +38,14 @@ export function SettingsTab() {
                 size={18}
                 color={locale === "my" ? theme.onAccent : theme.fg}
               />
-              <Text
+              <UiText
                 style={[
                   styles.langBtnText,
                   locale === "my" && styles.langBtnTextActive,
                 ]}
               >
                 {t("settings.languageMy")}
-              </Text>
+              </UiText>
             </View>
           </Pressable>
           <Pressable
@@ -52,25 +58,30 @@ export function SettingsTab() {
                 size={18}
                 color={locale === "en" ? theme.onAccent : theme.fg}
               />
-              <Text
+              <UiText
                 style={[
                   styles.langBtnText,
                   locale === "en" && styles.langBtnTextActive,
                 ]}
               >
                 {t("settings.languageEn")}
-              </Text>
+              </UiText>
             </View>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.subheadingRow}>
-        <Ionicons name="information-circle-outline" size={22} color={theme.accent} />
-        <Text style={styles.subheading}>{t("about.title")}</Text>
+        <Ionicons
+          name="information-circle-outline"
+          size={22}
+          color={theme.accent}
+          style={styles.subheadingIcon}
+        />
+        <UiText style={styles.subheading}>{t("about.title")}</UiText>
       </View>
       <View style={styles.card}>
-        <Text style={styles.body}>{t("about.body")}</Text>
+        <UiText style={styles.body}>{t("about.body")}</UiText>
       </View>
     </ScrollView>
   );
@@ -81,28 +92,36 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 32 },
   titleRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
     marginBottom: 12,
   },
+  titleIcon: { marginTop: 4 },
   pageTitle: {
     fontSize: 24,
     fontWeight: "700",
     color: theme.fg,
     flex: 1,
+    flexShrink: 1,
+    lineHeight: myLh(24),
+    paddingTop: 2,
   },
   subheadingRow: {
     marginTop: 20,
     marginBottom: 8,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
   },
+  subheadingIcon: { marginTop: 3 },
   subheading: {
     fontSize: 18,
     fontWeight: "700",
     color: theme.fg,
     flex: 1,
+    flexShrink: 1,
+    lineHeight: myLh(18),
+    paddingTop: 2,
   },
   card: {
     backgroundColor: theme.surface,
@@ -123,11 +142,12 @@ const styles = StyleSheet.create({
     color: theme.fgMuted,
     textTransform: "uppercase",
     letterSpacing: 0.8,
+    lineHeight: myLh(12),
   },
   langRow: { flexDirection: "row", gap: 10 },
   langBtn: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 12,
     backgroundColor: theme.surfaceAlt,
     borderWidth: 1,
@@ -139,7 +159,12 @@ const styles = StyleSheet.create({
     borderColor: theme.accent,
   },
   langBtnInner: { flexDirection: "row", alignItems: "center", gap: 8 },
-  langBtnText: { fontSize: 16, fontWeight: "700", color: theme.fg },
+  langBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.fg,
+    lineHeight: myLh(16),
+  },
   langBtnTextActive: { color: theme.onAccent },
-  body: { color: theme.fgMuted, fontSize: 16, lineHeight: 24 },
+  body: { color: theme.fgMuted, fontSize: 16, lineHeight: myLh(16) },
 });

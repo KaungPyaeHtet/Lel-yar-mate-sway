@@ -17,6 +17,9 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# Avoid repeating the same TimesFM import warning on every extractor instance.
+_TIMESFM_FALLBACK_LOGGED = False
+
 
 @dataclass
 class SeriesFeatureConfig:
@@ -42,6 +45,7 @@ class TimesFMFeatureExtractor:
         self._try_load_timesfm()
 
     def _try_load_timesfm(self) -> None:
+        global _TIMESFM_FALLBACK_LOGGED
         try:
             import timesfm  # type: ignore
 
@@ -59,7 +63,13 @@ class TimesFMFeatureExtractor:
             logger.info("TimesFM loaded from google/timesfm-1.0-200m")
         except Exception as e:  # noqa: BLE001
             self._tfm = None
-            logger.warning("TimesFM unavailable (%s); using statistical fallback.", e)
+            if not _TIMESFM_FALLBACK_LOGGED:
+                _TIMESFM_FALLBACK_LOGGED = True
+                logger.debug("TimesFM optional import failed: %s", e, exc_info=False)
+                logger.info(
+                    "Using built-in statistical series features for XGBoost "
+                    "(optional: pip install timesfm per backend/requirements.txt)."
+                )
 
     def transform(self, prices: np.ndarray) -> np.ndarray:
         """

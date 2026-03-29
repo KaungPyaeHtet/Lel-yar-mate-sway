@@ -8,17 +8,23 @@ import {
   fetchCurrentWeather,
   fetchMlNextDayDetail,
   fetchRiceMarketNewsContext,
+  forecastKyatFromMlPct,
+  formatLongDateLabel,
   formatSignedPercent,
+  getDefaultMarketItemForUi,
+  getMarketItemById,
+  initialMarketTabItemId,
+  MARKET_ITEMS,
+  tomorrowDateIsoLocal,
   getMlApiBaseUrl,
-  getPrimaryRiceMarketItem,
   midPriceMomentumPct,
+  observationMidsOldestToNewest,
   predictItemPrice,
   rainfallMmHintFromWeatherCode,
-  recentMidPricesForMl,
+  recentMidPricesForInference,
   riceMidSeriesForChart,
+  searchMarketItems,
   riceNewsContextToLines,
-  RICE_MARKET_SHEET_GENERATED_AT_ISO,
-  RICE_MARKET_USES_SEED_DATA,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
 } from "@agriora/core";
@@ -31,17 +37,23 @@ import { PriceHistoryChart } from "./PriceHistoryChart";
 const ML_HEADLINE_FALLBACK =
   "Rice and commodity markets Myanmar Southeast Asia.";
 
-function formatSentimentScore(n: number): string {
-  if (Number.isNaN(n)) return "—";
-  return n >= 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
-}
-
 function screenNewsVerdict(
   v: string | undefined
 ): "up" | "down" | "flat" {
   if (v === "up" || v === "down" || v === "flat") return v;
   return "flat";
 }
+
+function adviceStrengthWord(
+  confPct: number,
+  t: (k: AppStringKey) => string
+): string {
+  if (confPct < 40) return t("market.adviceStrengthSoft");
+  if (confPct < 68) return t("market.adviceStrengthMid");
+  return t("market.adviceStrengthFirm");
+}
+
+const ADVICE_HEADLINES_SHOWN = 3;
 
 function MlAdviceRationale({
   locale,
@@ -64,52 +76,54 @@ function MlAdviceRationale({
 }) {
   const confPct = Math.round(detail.confidenceHint * 100);
   const cond = weatherCodeLabelLocale(weatherSnap.weatherCode, locale);
+  const strength = adviceStrengthWord(confPct, t);
+  const showHeadlines = newsLines.slice(0, ADVICE_HEADLINES_SHOWN);
+  const moreHeadlines = newsLines.length - showHeadlines.length;
 
   return (
     <div className="ml-advice-rationale">
       <p>
-        {tf("market.adviceDetailsModelMove", {
+        {tf("market.adviceWhySummary", {
           pct: formatSignedPercent(detail.nextDayPctChange),
+          strength,
         })}
       </p>
-      <p>
-        {tf("market.adviceDetailsSignal", { pct: confPct })}
-      </p>
-      <p>{t("market.adviceDetailsSignalNote")}</p>
-      <p>
-        {tf("market.adviceDetailsSentiment", {
-          score: formatSentimentScore(detail.sentimentScore),
-        })}
-      </p>
-      <p>{t("market.adviceDetailsSentimentHint")}</p>
-      <p className="ml-rationale-label">{t("market.adviceDetailsNewsLabel")}</p>
+      <p>{t("market.adviceWhyTrust")}</p>
+      <p>{t("market.adviceWhyInputs")}</p>
       {usedPlaceholderNews ? (
         <p>{t("market.adviceDetailsPlaceholderNews")}</p>
       ) : null}
-      {newsLines.length > 0 ? (
-        <ul>
-          {newsLines.map((line, i) => (
-            <li key={i}>{line}</li>
-          ))}
-        </ul>
-      ) : usedPlaceholderNews ? null : (
+      {!usedPlaceholderNews && newsLines.length > 0 ? (
+        <>
+          <p className="ml-rationale-label">{t("market.adviceWhyHeadlines")}</p>
+          <ul>
+            {showHeadlines.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+          {moreHeadlines > 0 ? (
+            <p className="ml-advice-rationale-more">
+              {tf("market.adviceWhyHeadlinesMore", { n: moreHeadlines })}
+            </p>
+          ) : null}
+        </>
+      ) : !usedPlaceholderNews ? (
         <p>{t("market.adviceDetailsPlaceholderNews")}</p>
-      )}
+      ) : null}
       <p>
-        {tf("market.adviceDetailsWeather", {
+        {tf("market.adviceWhyWeather", {
           temp: Math.round(weatherSnap.temperatureC * 10) / 10,
           condition: cond,
-          rain: detail.rainfallMm,
         })}
       </p>
       <p>
-        {tf("market.adviceDetailsPattern", {
+        {tf("market.adviceWhyTrend", {
           d1: formatSignedPercent(detail.priceChange1dPct),
           d7: formatSignedPercent(detail.priceChange7dPct),
         })}
       </p>
       <p>
-        {tf("market.adviceDetailsScreenRule", { verdict: screenVerdictLabel })}
+        {tf("market.adviceWhySimpleRead", { verdict: screenVerdictLabel })}
       </p>
     </div>
   );
@@ -123,7 +137,18 @@ function formatMmks(n: number) {
 
 export function MarketPanel() {
   const { locale, t, tf } = useI18n();
-  const selected = useMemo(() => getPrimaryRiceMarketItem(), []);
+  const [itemId, setItemId] = useState(() => initialMarketTabItemId());
+  const [itemFilter, setItemFilter] = useState("");
+  const selected = useMemo(
+    () => getMarketItemById(itemId) ?? getDefaultMarketItemForUi(),
+    [itemId]
+  );
+  const { shownItems, allMatching } = useMemo(() => {
+    const all = itemFilter.trim()
+      ? searchMarketItems(itemFilter)
+      : [...MARKET_ITEMS];
+    return { allMatching: all, shownItems: all.slice(0, 120) };
+  }, [itemFilter]);
   const [newsAuto, setNewsAuto] = useState("");
   const [newsLoading, setNewsLoading] = useState(true);
   const [weatherSnap, setWeatherSnap] = useState<CurrentWeatherSnapshot | null>(
@@ -202,7 +227,7 @@ export function MarketPanel() {
 
   useEffect(() => {
     if (!mlBase || !weatherSnap || newsLoading) return;
-    const prices = recentMidPricesForMl(selected, 8);
+    const prices = recentMidPricesForInference(selected, 8);
     if (!prices) {
       setMlErr(t("market.mlBackendNeedHistory"));
       return;
@@ -213,7 +238,11 @@ export function MarketPanel() {
     setMlDetail(null);
     const headline =
       newsAuto.trim() || ML_HEADLINE_FALLBACK;
-    const momentum = midPriceMomentumPct(prices);
+    const rawMids = observationMidsOldestToNewest(selected);
+    const momentum =
+      rawMids.length >= 8
+        ? midPriceMomentumPct(rawMids.slice(-8))
+        : null;
     const rainMm = rainfallMmHintFromWeatherCode(weatherSnap.weatherCode);
     fetchMlNextDayDetail({
       avgPrices: prices,
@@ -247,21 +276,76 @@ export function MarketPanel() {
     screenNewsVerdict(prediction?.factors.newsVerdict)
   );
 
+  const latestDateIso = useMemo(() => {
+    if (chartSeries.length > 0) {
+      return chartSeries[chartSeries.length - 1]!.dateIso;
+    }
+    return prediction?.baselineDateIso ?? null;
+  }, [chartSeries, prediction]);
+
+  const latestDateLabel = useMemo(() => {
+    if (!latestDateIso) return null;
+    return formatLongDateLabel(latestDateIso, locale);
+  }, [latestDateIso, locale]);
+
+  const forecastForDateLabel =
+    prediction != null
+      ? formatLongDateLabel(tomorrowDateIsoLocal(), locale)
+      : null;
+
+  const mlForecastKyat =
+    prediction && mlDetail
+      ? forecastKyatFromMlPct(
+          prediction.baselineMid,
+          mlDetail.nextDayPctChange,
+          prediction.baselineLow,
+          prediction.baselineHigh
+        )
+      : null;
+
+  const displayForecastMid =
+    mlForecastKyat?.mid ?? prediction?.predictedMid ?? null;
+
   return (
     <div className="panel market-panel">
       <div className="page-title-row">
         <IconMarket className="panel-icon" aria-hidden />
         <h2 className="page-title">{t("market.title")}</h2>
       </div>
-      <p className="hint">
-        {tf("market.hint", { generated: RICE_MARKET_SHEET_GENERATED_AT_ISO })}
-      </p>
-      <p className="hint tight">{t("market.autoHint")}</p>
-      {RICE_MARKET_USES_SEED_DATA && (
-        <p className="hint tight rice-seed-note">{t("market.riceSeedNote")}</p>
-      )}
-
       <div className="card market-detail">
+        <p className="result-label">{t("market.chooseItem")}</p>
+        <input
+          className="input-search"
+          type="search"
+          placeholder={t("market.itemFilterPlaceholder")}
+          aria-label={t("market.searchAria")}
+          value={itemFilter}
+          onChange={(e) => setItemFilter(e.target.value)}
+        />
+        <p className="meta market-date-caption">
+          {tf("market.itemListHint", {
+            shown: shownItems.length,
+            total: allMatching.length,
+          })}
+        </p>
+        {allMatching.length > shownItems.length ? (
+          <p className="meta market-date-caption">{t("market.itemListCap")}</p>
+        ) : null}
+        <ul className="market-list" aria-label={t("market.itemsAria")}>
+          {shownItems.map((it) => (
+            <li key={it.id}>
+              <button
+                type="button"
+                className={`market-row ${it.id === itemId ? "active" : ""}`}
+                onClick={() => setItemId(it.id)}
+              >
+                <span className="market-row-title">{it.itemDetails}</span>
+                <span className="market-row-meta">{it.itemCategory}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+
         <p className="result-label">{t("market.selected")}</p>
         <p className="market-detail-title">{selected.itemDetails}</p>
         <p className="meta market-breadcrumb">
@@ -271,20 +355,52 @@ export function MarketPanel() {
         </p>
 
         <p className="result-label">{t("market.chartTitle")}</p>
+        {latestDateLabel ? (
+          <p className="meta market-date-caption">
+            {tf("market.chartDataThrough", { date: latestDateLabel })}
+          </p>
+        ) : null}
         <PriceHistoryChart series={chartSeries} locale={locale} />
 
-        {prediction && (
+        {displayForecastMid != null && prediction && (
           <div className="prediction-block">
             <p className="result-label">{t("market.forecastPriceTitle")}</p>
+            {latestDateLabel ? (
+              <p className="meta market-date-caption">
+                {tf("market.forecastFromLatest", { date: latestDateLabel })}
+              </p>
+            ) : null}
+            {forecastForDateLabel ? (
+              <p className="meta market-date-caption forecast-for-day">
+                {tf("market.forecastForDate", { date: forecastForDateLabel })}
+              </p>
+            ) : null}
             <p className="prediction-mid">
-              {formatMmks(prediction.predictedMid)} {t("common.mmk")}
+              {formatMmks(displayForecastMid)} {t("common.mmk")}
             </p>
-            <p className="disclaimer">{t("market.predictionDisclaimer")}</p>
+            {mlForecastKyat ? (
+              <p className="meta market-date-caption">
+                {t("market.forecastMlSource")}
+              </p>
+            ) : mlBase && mlLoading ? (
+              <p className="meta market-date-caption">
+                {t("market.forecastAwaitingMl")}
+              </p>
+            ) : (
+              <p className="meta market-date-caption">
+                {t("market.forecastHeuristicSource")}
+              </p>
+            )}
           </div>
         )}
 
         <div className="ml-backend-block">
           <p className="result-label">{t("market.adviceTitle")}</p>
+          {latestDateLabel ? (
+            <p className="meta market-date-caption">
+              {tf("market.mlUsesLatestDate", { date: latestDateLabel })}
+            </p>
+          ) : null}
           {mlBase ? (
             <>
               {mlLoading && (

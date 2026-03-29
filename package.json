@@ -11,7 +11,11 @@
     "web": "npm run dev --workspace=@agriora/web",
     "mobile": "npm run start --workspace=@agriora/mobile",
     "build:web": "npm run build --workspace=@agriora/web",
-    "build:core": "npm run build --workspace=@agriora/core"
+    "build:core": "npm run build --workspace=@agriora/core",
+    "market:sync": "python3 scripts/xlsx_to_market.py && npm run build:core",
+    "market:train": "RICE_SENTIMENT_MOCK=1 python3 backend/train_from_csv.py --csv backend/data/rice_data.csv",
+    "ml:backtest": "RICE_SENTIMENT_MOCK=1 python3 backend/backtest_window.py --csv backend/data/rice_data.csv --walk-forward --min-train 8",
+    "ml:backtest:window": "RICE_SENTIMENT_MOCK=1 python3 backend/backtest_window.py --csv backend/data/rice_data.csv --train-start 2026-03-14 --train-end 2026-03-20 --test-dates 2026-03-21,2026-03-23"
   },
   "overrides": {
     "expo": "~54.0.33",

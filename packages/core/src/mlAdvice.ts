@@ -13,7 +13,8 @@ export function adviceFromMlNextDayPct(
   pct: number,
   options?: { deadbandPct?: number }
 ): RiceMlAdvice {
-  const b = options?.deadbandPct ?? 0.12;
+  /* Tighter band so modest negative model outputs still surface “consider selling”. */
+  const b = options?.deadbandPct ?? 0.075;
   if (pct > b) return "hold";
   if (pct < -b) return "sell";
   return "neutral";

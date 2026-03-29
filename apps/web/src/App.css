@@ -537,6 +537,12 @@ html.locale-my .app {
   margin-top: 0;
 }
 
+.market-date-caption {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 .weather-actions {
   display: flex;
   gap: 0.5rem;
@@ -567,6 +573,13 @@ html.locale-my .app {
   margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--color-border);
+}
+
+.market-date-caption.forecast-for-day {
+  margin-top: 0.35rem;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  color: var(--color-fg);
 }
 
 .ml-backend-block {
@@ -601,13 +614,14 @@ html.locale-my .app {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+  color: var(--color-fg);
 }
 
 .ml-advice__sub {
   margin: 0.25rem 0 0;
   font-size: 0.86rem;
   line-height: 1.35;
-  color: rgba(232, 244, 236, 0.82);
+  color: var(--color-muted);
 }
 
 .ml-advice--hold .ml-advice__glyph {
@@ -619,7 +633,7 @@ html.locale-my .app {
 }
 
 .ml-advice--neutral .ml-advice__glyph {
-  color: rgba(232, 244, 236, 0.55);
+  color: var(--color-muted);
 }
 
 .ml-advice--hold {
@@ -660,7 +674,7 @@ html.locale-my .app {
   margin-top: 0.2rem;
   font-size: 0.78rem;
   font-weight: 600;
-  opacity: 0.85;
+  color: var(--color-accent);
 }
 
 .ml-advice-rationale {
@@ -699,17 +713,18 @@ html.locale-my .app {
   margin-bottom: 0.25rem;
 }
 
+.ml-advice-rationale-more {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
 .ml-advice-details.ml-advice--hold .ml-advice-rationale {
   border-top-color: rgba(76, 175, 80, 0.25);
 }
 
 .ml-advice-details.ml-advice--sell .ml-advice-rationale {
   border-top-color: rgba(239, 83, 80, 0.25);
-}
-
-.rice-seed-note {
-  color: rgba(200, 220, 205, 0.75);
-  font-size: 0.85rem;
 }
 
 .price-chart-wrap {
@@ -733,7 +748,7 @@ html.locale-my .app {
   padding-bottom: 0.25rem;
   font-size: 0.78rem;
   font-weight: 600;
-  color: rgba(232, 244, 236, 0.88);
+  color: var(--color-muted);
   letter-spacing: 0.02em;
 }
 
@@ -746,7 +761,7 @@ html.locale-my .app {
 .chart-empty {
   margin: 0.5rem 0 1rem;
   font-size: 0.88rem;
-  color: rgba(232, 244, 236, 0.72);
+  color: var(--color-muted);
 }
 
 .prediction-mid {

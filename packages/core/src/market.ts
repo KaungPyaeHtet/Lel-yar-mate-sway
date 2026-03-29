@@ -74,6 +74,69 @@ export function recentMidPricesForMl(
   return mids.slice(-count);
 }
 
+/** Usable mid prices from the sheet, oldest → newest (no padding). */
+export function observationMidsOldestToNewest(item: MarketItem): number[] {
+  const obsSorted = [...item.observations].sort((a, b) =>
+    a.dateIso.localeCompare(b.dateIso)
+  );
+  const mids: number[] = [];
+  for (const o of obsSorted) {
+    const m = mid(o);
+    if (m != null) mids.push(m);
+  }
+  return mids;
+}
+
+/**
+ * Last `count` mids for the ML API (`/api/predict/next-day-pct` requires 8).
+ * If the sheet has fewer survey columns, the earliest mid is repeated at the
+ * front so the latest values stay the real trail (hackathon / demo behaviour).
+ */
+export function recentMidPricesForInference(
+  item: MarketItem,
+  count = 8
+): number[] | null {
+  const mids = observationMidsOldestToNewest(item);
+  if (mids.length === 0) return null;
+  const out = [...mids];
+  const first = out[0]!;
+  while (out.length < count) {
+    out.unshift(first);
+  }
+  return out.slice(-count);
+}
+
+/**
+ * Turn the backend’s next-day % into Kyat using the latest sheet mid; band uses
+ * the same spread heuristic as {@link predictItemPrice}.
+ */
+export function forecastKyatFromMlPct(
+  latestMid: number,
+  nextDayPctChange: number,
+  baselineLow: number | null,
+  baselineHigh: number | null
+): { mid: number; low: number; high: number } {
+  const raw = latestMid * (1 + nextDayPctChange / 100);
+  const span =
+    baselineLow != null && baselineHigh != null
+      ? baselineHigh - baselineLow
+      : latestMid * 0.06;
+  const half = Math.max(span / 2, latestMid * 0.02);
+  return {
+    mid: Math.round(raw),
+    low: Math.round(Math.max(0, raw - half)),
+    high: Math.round(raw + half),
+  };
+}
+
+/** First sheet row usable for charts + ML, or the first row in the workbook export. */
+export function getDefaultMarketItemForUi(): MarketItem {
+  for (const it of MARKET_ITEMS) {
+    if (recentMidPricesForInference(it, 8) != null) return it;
+  }
+  return MARKET_ITEMS[0]!;
+}
+
 export function searchMarketItems(query: string): MarketItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return [...MARKET_ITEMS];

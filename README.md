@@ -68,7 +68,7 @@ npx expo start --clear
 | `apps/mobile` | Expo SDK **54** (`npm run mobile`) |
 | `packages/core` | Shared TypeScript: `MARKET_ITEMS` / `predictItemPrice`, `loadAggregatedHeadlines` (RSS), news `analyzeWithRules`, `MYANMAR_PLACES`, `fetchCurrentWeather` |
 | `data.xlsx` | Source spreadsheet for Myanmar market lows/highs by date; regenerate TS after edits |
-| `scripts/xlsx_to_market.py` | Exports `packages/core/src/marketData.generated.ts` (requires Python + `openpyxl`) |
+| `scripts/xlsx_to_market.py` | Exports `packages/core/src/marketData.generated.ts` + `backend/data/rice_data.csv` for XGBoost (Python + `openpyxl`) |
 | `App.tsx` (repo root) | Re-exports the mobile app entry so Expo’s `AppEntry` resolves correctly when `expo` is hoisted in the workspace |
 
 ## Monorepo notes
@@ -89,6 +89,16 @@ python3 -m venv .venv
 .venv/bin/python scripts/xlsx_to_market.py
 npm run build:core
 ```
+
+From the repo root you can instead run **`npm run market:sync`** (same as the two commands above).
+
+The script also writes **`backend/data/rice_data.csv`**: daily mid-prices for **March 1–24** in the sheet’s month (flat carry before the first / after the last survey column), built from the best **စပါး/ဆန်** row with prices, or—if those cells are empty—the **most complete priced row** (often ဂျုံ), or a synthetic demo series. Retrain the API model with:
+
+```bash
+npm run market:train
+```
+
+(use a real venv with `backend` deps if `python3` lacks `xgboost`). For quick training without downloading transformers, the script sets **`RICE_SENTIMENT_MOCK=1`**.
 
 **Windows (PowerShell or Command Prompt):**
 
@@ -112,6 +122,8 @@ The script writes **`packages/core/src/marketData.generated.ts`** (committed so 
 | `npm run mobile` | Start Expo dev server |
 | `npm run build:web` | Production build of the web app |
 | `npm run build:core` | Rebuild `packages/core` only |
+| `npm run market:sync` | Regenerate `marketData.generated.ts` + `rice_data.csv` from `data.xlsx`, then build core |
+| `npm run market:train` | Train `backend/models/rice_xgb.json` from `backend/data/rice_data.csv` (mock sentiment) |
 
 ## Troubleshooting
 

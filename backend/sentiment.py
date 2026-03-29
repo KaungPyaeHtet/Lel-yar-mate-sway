@@ -1,14 +1,17 @@
 """
-News → sentiment score using ClimateBERT `distilroberta-base-climate-f`.
+News → sentiment score for the rice XGBoost feature (roughly [-1, 1]).
 
-Hugging Face may print `roberta.embeddings.position_ids | UNEXPECTED`: the hub file
-still carries that buffer while current RoBERTa code does not load it; weights that
-matter are applied — safe to ignore.
+1) **Lexical layer** — English + Burmese commodity / price phrases (always on).
+   Catches clear “prices up / export ban / harvest” style headlines that often
+   sit near 0 for embedding cosine models.
 
-That checkpoint is a masked LM (not a classifier). We use mean-pooled embeddings
-and cosine similarity to bullish vs bearish rice-market anchor texts, then apply
-keyword-based weighting. Optional: set CLIMATE_USE_SENTIMENT_HEAD=1 to use
-`distilroberta-base-climate-sentiment` (3-class risk/neutral/opportunity) instead.
+2) **Neural layer** — ClimateBERT `distilroberta-base-climate-f` (default): mean-pooled
+   embeddings vs bullish/bearish anchors, plus `_keyword_adjustment`.
+   Set CLIMATE_USE_SENTIMENT_HEAD=1 for `distilroberta-base-climate-sentiment`.
+
+Final score blends lexical + neural (lexical-weighted) so RSS titles move the needle.
+
+Set RICE_SENTIMENT_MOCK=1 to skip transformers (lexical + keywords only).
 """
 
 from __future__ import annotations
@@ -71,6 +74,85 @@ _HIGH_IMPACT_POS = (
 # "monsoon" amplifies whichever direction the base score already suggests
 _MONSOON = "monsoon"
 
+# Headline phrase hits (English, lowercased cleaned text) — rice / ag / macro.
+_LEX_BULLISH_EN = (
+    "export ban",
+    "export curb",
+    "export restriction",
+    "supply tight",
+    "tight inventories",
+    "crop failure",
+    "crop loss",
+    "food insecurity",
+    "price surge",
+    "prices surge",
+    "rice futures",
+    "grain futures",
+    "commodities rally",
+    "shortage of",
+    "shortage in",
+    "sanctions",
+    "inflation shock",
+    "demand surge",
+    "logistics disruption",
+    "port congestion",
+    "heatwave",
+    "cyclone",
+    "flood damage",
+    "price rise",
+    "prices rise",
+    "surge in price",
+    "jump in price",
+    "oil prices jump",
+    "crude oil rises",
+    "brent crude higher",
+    "fuel costs surge",
+)
+_LEX_BEARISH_EN = (
+    "record harvest",
+    "bumper crop",
+    "oversupply",
+    "glut",
+    "ceasefire",
+    "peace deal",
+    "truce",
+    "export resumed",
+    "tariff cut",
+    "sanctions eased",
+    "price drop",
+    "prices fall",
+    "prices fell",
+    "futures ease",
+    "bearish",
+    "selloff",
+    "surplus",
+    "reserves released",
+    "disinflation",
+    "price decline",
+    "prices decline",
+    "eased prices",
+    "oil prices fall",
+    "crude oil slides",
+    "brent crude lower",
+    "fuel prices drop",
+)
+
+# Burmese titles (search original string; common price / trend words).
+_LEX_BULLISH_MY = (
+    "ဈေးတက်",
+    "စျေးတက်",
+    "တက်လာ",
+    "တိုးတက်",
+    "မြင့်တက်",
+)
+_LEX_BEARISH_MY = (
+    "ဈေးကျ",
+    "စျေးကျ",
+    "ကျဆင်း",
+    "လျော့ကျ",
+    "လျော့",
+)
+
 # Serialize torch forwards (OpenMP + multi-library macOS builds).
 _TORCH_GUARD = threading.Lock()
 
@@ -96,6 +178,48 @@ def _keyword_adjustment(text: str) -> tuple[float, float]:
     delta = 0.0
     delta -= 0.12 * min(neg_hits, 4)
     delta += 0.12 * min(pos_hits, 4)
+
+    # Oil / fuel direction (transport & input costs → commodity price channel)
+    if any(k in lo for k in ("oil", "crude", "brent", "wti", "fuel", "diesel", "gasoline")):
+        up = any(
+            w in lo
+            for w in (
+                "rise",
+                "rises",
+                "rising",
+                "surge",
+                "jump",
+                "soar",
+                "higher",
+                "gain",
+                "gains",
+                "climb",
+                "increase",
+                "rally",
+            )
+        )
+        down = any(
+            w in lo
+            for w in (
+                "fall",
+                "falls",
+                "fell",
+                "drop",
+                "drops",
+                "plunge",
+                "slide",
+                "lower",
+                "decline",
+                "decrease",
+                "crash",
+                "slump",
+            )
+        )
+        if up and not down:
+            delta += 0.07
+        elif down and not up:
+            delta -= 0.06
+
     if monsoon:
         if "failure" in lo or "deficit" in lo or "weak" in lo:
             delta -= 0.08
@@ -106,6 +230,35 @@ def _keyword_adjustment(text: str) -> tuple[float, float]:
 
     mult = 1.0 + 0.08 * min(neg_hits + pos_hits + (1 if monsoon else 0), 6)
     return delta, mult
+
+
+def _score_headline_lexical(text: str) -> float:
+    """
+    Keyword / phrase tilt from headline text (EN + MY), merged with _keyword_adjustment.
+    Stronger signal for typical short RSS titles than embedding cosine alone.
+    """
+    raw = str(text).strip()
+    if not raw:
+        return 0.0
+    cleaned = _clean_text(raw)
+    lo = cleaned.lower() if cleaned else raw.lower()
+
+    up = sum(1 for p in _LEX_BULLISH_EN if p in lo)
+    down = sum(1 for p in _LEX_BEARISH_EN if p in lo)
+    up += sum(1 for p in _LEX_BULLISH_MY if p in raw)
+    down += sum(1 for p in _LEX_BEARISH_MY if p in raw)
+
+    spread = min(8, max(-8, up - down))
+    base = float(np.tanh(spread * 0.28))
+    d, mult = _keyword_adjustment(lo)
+    return float(np.clip(base * mult + d, -1.0, 1.0))
+
+
+def _aggregate_lexical(headlines_list: list[str]) -> float:
+    scores = [_score_headline_lexical(h) for h in headlines_list if str(h).strip()]
+    if not scores:
+        return 0.0
+    return float(np.mean(scores))
 
 
 def _cosine(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -200,34 +353,25 @@ def _one_headline_score(text: str, device: torch.device) -> float:
     return float(np.clip(v, -1.0, 1.0))
 
 
-def _mock_sentiment_from_keywords(headlines_list: list[str]) -> float:
-    """Keyword-only score for fast tests without downloading models (RICE_SENTIMENT_MOCK=1)."""
-    scores = []
-    for h in headlines_list:
-        c = _clean_text(str(h))
-        if not c:
-            continue
-        base = 0.0
-        d, mult = _keyword_adjustment(c)
-        v = np.clip(base * mult + d, -1.0, 1.0)
-        scores.append(v)
-    return float(np.mean(scores)) if scores else 0.0
-
-
 def get_rice_market_sentiment(headlines_list: list[str]) -> float:
     """
-    Aggregate sentiment for a list of headlines into one float in [-1, 1].
+    Aggregate sentiment for headlines into one float in [-1, 1].
 
-    Uses `climatebert/distilroberta-base-climate-f` by default (embedding anchors).
-    Set RICE_SENTIMENT_MOCK=1 to skip transformers (keyword heuristic only).
+    Lexical (EN/MY phrases + ag keywords) is blended with the neural ClimateBERT score
+    so commodity headlines are not stuck at ~0. RICE_SENTIMENT_MOCK=1 → lexical only.
     """
+    lex = _aggregate_lexical(headlines_list)
     if os.environ.get("RICE_SENTIMENT_MOCK", "").lower() in ("1", "true", "yes"):
-        return _mock_sentiment_from_keywords(headlines_list)
+        return float(np.clip(lex, -1.0, 1.0))
     if not headlines_list:
-        return 0.0
+        return float(np.clip(lex, -1.0, 1.0))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with _TORCH_GUARD:
         scores = [_one_headline_score(h, device) for h in headlines_list if str(h).strip()]
-    if not scores:
-        return 0.0
-    return float(np.mean(scores))
+    neural = float(np.mean(scores)) if scores else 0.0
+    # Lexical carries explicit price/ag language; neural adds softer context.
+    w_lex = 0.68
+    if abs(neural) < 0.05:
+        w_lex = 0.82
+    blend = w_lex * lex + (1.0 - w_lex) * neural
+    return float(np.clip(blend, -1.0, 1.0))

@@ -63,8 +63,8 @@ export function PriceHistoryChart({
       >
         <defs>
           <linearGradient id="riceLineGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(148, 232, 176, 0.5)" />
-            <stop offset="100%" stopColor="rgba(148, 232, 176, 0.04)" />
+            <stop offset="0%" stopColor="rgba(27, 107, 54, 0.2)" />
+            <stop offset="100%" stopColor="rgba(27, 107, 54, 0.03)" />
           </linearGradient>
         </defs>
         {[0, 0.5, 1].map((t) => {
@@ -76,7 +76,7 @@ export function PriceHistoryChart({
               y1={y}
               x2={w - padR}
               y2={y}
-              stroke="rgba(255,255,255,0.14)"
+              stroke="var(--color-border)"
               strokeWidth={1}
             />
           );
@@ -88,7 +88,7 @@ export function PriceHistoryChart({
         <path
           d={pathD}
           fill="none"
-          stroke="#a8f0c0"
+          stroke="var(--color-accent)"
           strokeWidth={2.75}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -99,15 +99,15 @@ export function PriceHistoryChart({
             cx={xAt(i)}
             cy={yAt(p.mid)}
             r={4}
-            fill="#1a2820"
-            stroke="#c8f5d8"
+            fill="var(--color-surface)"
+            stroke="var(--color-accent)"
             strokeWidth={2.25}
           />
         ))}
         <text
           x={2}
           y={yAt(maxV) + 3}
-          fill="#e8f4ec"
+          fill="var(--color-muted)"
           fontSize="11"
           fontWeight="600"
         >
@@ -116,7 +116,7 @@ export function PriceHistoryChart({
         <text
           x={2}
           y={yAt(minV) + 12}
-          fill="#e8f4ec"
+          fill="var(--color-muted)"
           fontSize="11"
           fontWeight="600"
         >

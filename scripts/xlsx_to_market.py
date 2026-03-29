@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 """
-Read root data.xlsx (Myanmar ag market lows/highs by date) and emit
-packages/core/src/marketData.generated.ts for @agriora/core.
+Read root data.xlsx (Myanmar ag market lows/highs by date) and emit:
+  - packages/core/src/marketData.generated.ts for @agriora/core
+  - backend/data/rice_data.csv — one daily series from the primary စပါး/ဆန် row
+    (mid-price from low/high, synthetic March weather + headline templates)
+    for XGBoost training /api/predict/next-day-pct.
 
-The app’s Rice tab uses @agriora/core `RICE_MARKET_ITEMS`: rows whose
-item category or detail contains စပါး / ဆန် (see riceMarket.ts). If none,
-demo rice series use the same date columns as this export.
+The app’s Rice tab uses `RICE_MARKET_ITEMS`: rows whose category/detail match
+riceMarket.ts. If none, demo seed data is used and rice_data.csv is skipped.
 
 Usage (from repo root, with venv + openpyxl):
   .venv/bin/pip install -r requirements-market.txt
   .venv/bin/python scripts/xlsx_to_market.py
+  .venv/bin/python scripts/xlsx_to_market.py --no-rice-csv   # TS only
 """
 
 from __future__ import annotations
 
+import argparse
+import csv
 import hashlib
 import json
+import math
 import re
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -25,6 +31,178 @@ from openpyxl import load_workbook
 ROOT = Path(__file__).resolve().parents[1]
 XLSX = ROOT / "data.xlsx"
 OUT = ROOT / "packages" / "core" / "src" / "marketData.generated.ts"
+RICE_CSV_OUT = ROOT / "backend" / "data" / "rice_data.csv"
+
+_RICE_RE = re.compile(r"ဆန်ခွဲ|ပေါင်စပါး|ဧရာဝတီစပါး")
+
+
+def is_rice_market_row(item_category: str, item_detail: str) -> bool:
+    """Match packages/core/src/riceMarket.ts isRiceMarketItemFromSheet."""
+    blob = f"{item_category} {item_detail}"
+    if "စပါး" in blob:
+        return True
+    if "ဆန်" in blob:
+        return True
+    if _RICE_RE.search(blob):
+        return True
+    return False
+
+
+def observation_mid(low_v: float | None, high_v: float | None) -> float | None:
+    if low_v is not None and high_v is not None:
+        return (low_v + high_v) / 2.0
+    if low_v is not None:
+        return float(low_v)
+    if high_v is not None:
+        return float(high_v)
+    return None
+
+
+def mid_usable_count(it: dict) -> int:
+    return sum(
+        1
+        for o in it["observations"]
+        if observation_mid(o.get("low"), o.get("high")) is not None
+    )
+
+
+def pick_ml_source_item(items: list[dict]) -> tuple[dict, str] | None:
+    """
+    Training series for backend rice_data.csv:
+    1) Rice row with ≥2 survey points (interpolated to calendar days).
+    2) Else commodity row with the most survey points (e.g. ဂျုံ when rice cells are empty).
+    """
+    rice = [it for it in items if is_rice_market_row(it["itemCategory"], it["itemDetails"])]
+    rice_ok = sorted(rice, key=mid_usable_count, reverse=True)
+    for it in rice_ok:
+        if mid_usable_count(it) >= 2:
+            return it, "rice_sheet"
+    if not items:
+        return None
+    best = max(items, key=mid_usable_count)
+    if mid_usable_count(best) >= 2:
+        return best, "commodity_fallback"
+    return None
+
+
+def daily_series_from_observations(observations: list[dict]) -> list[tuple[str, float]]:
+    """Piecewise linear mid prices on every calendar day between first and last survey date."""
+    pts: list[tuple[date, float]] = []
+    for o in sorted(observations, key=lambda x: x["dateIso"]):
+        m = observation_mid(o.get("low"), o.get("high"))
+        if m is None:
+            continue
+        raw = str(o["dateIso"]).strip()[:10]
+        try:
+            di = datetime.strptime(raw, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        pts.append((di, float(m)))
+    if len(pts) < 2:
+        return [(p[0].isoformat(), round(p[1], 2)) for p in pts]
+
+    out: list[tuple[str, float]] = []
+    for i in range(len(pts) - 1):
+        d0, p0 = pts[i]
+        d1, p1 = pts[i + 1]
+        span = (d1 - d0).days
+        if span <= 0:
+            if not out or out[-1][0] != d0.isoformat():
+                out.append((d0.isoformat(), round(p0, 2)))
+            continue
+        for k in range(span):
+            dd = d0 + timedelta(days=k)
+            t = k / span
+            pm = p0 + (p1 - p0) * t
+            out.append((dd.isoformat(), round(pm, 2)))
+    out.append((pts[-1][0].isoformat(), round(pts[-1][1], 2)))
+    return out
+
+
+def pad_march_training_window(daily: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    """
+    Extend to 1–24 March in the same year as the first price row (flat outside survey span)
+    so XGBoost lag-7 has enough rows when the sheet only has a few survey columns.
+    """
+    if not daily:
+        return daily
+    pts = sorted(
+        (datetime.strptime(ds, "%Y-%m-%d").date(), float(pr)) for ds, pr in daily
+    )
+    fd, fp = pts[0]
+    ld, lp = pts[-1]
+    y, mo = fd.year, fd.month
+    start = date(y, mo, 1)
+    end = date(y, mo, min(24, 31))
+    known = {d: p for d, p in pts}
+    out: list[tuple[str, float]] = []
+    d = start
+    while d <= end:
+        if d in known:
+            pr = known[d]
+        elif d < fd:
+            pr = fp
+        else:
+            pr = lp
+        out.append((d.isoformat(), round(pr, 2)))
+        d += timedelta(days=1)
+    return out
+
+
+def synthetic_seed_daily(periods_iso: list[str]) -> list[tuple[str, float]]:
+    """Match packages/core rice demo: one anchor per sheet column, then interpolate daily."""
+    anchors: list[dict] = []
+    base_mid = 285_000.0
+    volatility = 0.014
+    for i, p in enumerate(periods_iso):
+        if not p or not str(p).strip():
+            continue
+        ds = str(p).strip()[:10]
+        try:
+            datetime.strptime(ds, "%Y-%m-%d")
+        except ValueError:
+            continue
+        drift = 1 + 0.0035 * math.sin(i * 0.85) + i * 0.0011
+        mid = base_mid * drift
+        w = mid * volatility
+        lo, hi = max(0.0, mid - w), mid + w
+        anchors.append({"dateIso": ds, "low": lo, "high": hi})
+    return daily_series_from_observations(anchors)
+
+
+# Headlines for ML sentiment features (English; pipeline splits on ".")
+_RICE_HEADLINES = [
+    "Rice wholesale steady as mandi arrivals pick up after the holiday.",
+    "Export demand supports local paddy quotes; traders watch policy signals.",
+    "Monsoon outlook improves for delta plantings; futures drift slightly lower.",
+    "Logistics delays along main corridors keep wholesale spreads wide.",
+    "Bumper harvest chatter caps upside despite tight warehouse stocks.",
+    "Heatwave warnings lift irrigation costs; farmgate paddy bids firm.",
+    "Regional buyers return after floods; milled rice moves in thin trade.",
+    "Government buffer release cools retail rice inflation in urban markets.",
+]
+
+
+def write_daily_ml_csv(
+    daily: list[tuple[str, float]], dest: Path, label: str
+) -> int:
+    """
+    One row per calendar day: date, avg_price (mid), rainfall_mm, temp_c, news_headline.
+    """
+    rows_out: list[tuple[str, float, float, float, str]] = []
+    for i, (d_iso, mid) in enumerate(daily):
+        rain = round(2.0 + (i * 4.17 + 1.3) % 16.0, 1)
+        temp_c = round(29.0 + (i % 9) * 0.75 + 0.15 * (i % 3), 1)
+        headline = _RICE_HEADLINES[i % len(_RICE_HEADLINES)]
+        rows_out.append((d_iso, mid, rain, temp_c, headline))
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with dest.open("w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["date", "avg_price", "rainfall_mm", "temp_c", "news_headline"])
+        w.writerows(rows_out)
+    print(f"  Series: {label} ({len(rows_out)} daily rows)")
+    return len(rows_out)
 
 
 def ts_string(s: str) -> str:
@@ -59,6 +237,20 @@ def stable_id(parts: tuple[str, ...]) -> str:
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description="Export marketData.generated.ts from data.xlsx")
+    ap.add_argument(
+        "--no-rice-csv",
+        action="store_true",
+        help="Do not write backend/data/rice_data.csv",
+    )
+    ap.add_argument(
+        "--rice-csv",
+        type=Path,
+        default=RICE_CSV_OUT,
+        help=f"Output path for ML training CSV (default: {RICE_CSV_OUT})",
+    )
+    args = ap.parse_args()
+
     if not XLSX.is_file():
         raise SystemExit(f"Missing {XLSX}")
 
@@ -170,6 +362,28 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text("\n".join(lines), encoding="utf-8")
     print(f"Wrote {len(items)} items, {len(periods_iso)} periods → {OUT}")
+
+    if args.no_rice_csv:
+        return
+
+    picked = pick_ml_source_item(items)
+    if picked is not None:
+        source, tag = picked
+        daily = daily_series_from_observations(source["observations"])
+        daily = pad_march_training_window(daily)
+        detail = source["itemDetails"][:56]
+        print(f"ML training CSV from workbook row: “{detail}…”")
+        n = write_daily_ml_csv(daily, args.rice_csv, tag)
+    else:
+        print("No priced rows in workbook — using synthetic rice series (sheet date columns).")
+        daily = synthetic_seed_daily(periods_iso)
+        daily = pad_march_training_window(daily)
+        n = write_daily_ml_csv(daily, args.rice_csv, "synthetic_seed")
+
+    print(f"→ {args.rice_csv} ({n} rows)")
+    print(
+        "Retrain: RICE_SENTIMENT_MOCK=1 python backend/train_from_csv.py --csv backend/data/rice_data.csv"
+    )
 
 
 if __name__ == "__main__":

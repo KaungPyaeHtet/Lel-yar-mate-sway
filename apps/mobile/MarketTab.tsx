@@ -9,17 +9,23 @@ import {
   fetchCurrentWeather,
   fetchMlNextDayDetail,
   fetchRiceMarketNewsContext,
+  forecastKyatFromMlPct,
+  formatLongDateLabel,
   formatSignedPercent,
+  getDefaultMarketItemForUi,
+  getMarketItemById,
+  initialMarketTabItemId,
+  MARKET_ITEMS,
+  tomorrowDateIsoLocal,
   getMlApiBaseUrl,
-  getPrimaryRiceMarketItem,
   midPriceMomentumPct,
+  observationMidsOldestToNewest,
   predictItemPrice,
   rainfallMmHintFromWeatherCode,
-  recentMidPricesForMl,
+  recentMidPricesForInference,
   riceMidSeriesForChart,
+  searchMarketItems,
   riceNewsContextToLines,
-  RICE_MARKET_SHEET_GENERATED_AT_ISO,
-  RICE_MARKET_USES_SEED_DATA,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
 } from "@agriora/core";
@@ -29,20 +35,17 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
+  TextInput,
   View,
 } from "react-native";
 import { useI18n } from "./LocaleContext";
-import { theme } from "./theme";
+import { UiText } from "./UiText";
+import { myLh, theme } from "./theme";
+import { PriceHistoryChartMobile } from "./PriceHistoryChart";
 import { resolveCoordsForWeather } from "./weatherLocation";
 
 const ML_HEADLINE_FALLBACK =
   "Rice and commodity markets Myanmar Southeast Asia.";
-
-function formatSentimentScore(n: number): string {
-  if (Number.isNaN(n)) return "—";
-  return n >= 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
-}
 
 function screenNewsVerdict(
   v: string | undefined
@@ -51,53 +54,20 @@ function screenNewsVerdict(
   return "flat";
 }
 
+function adviceStrengthWord(
+  confPct: number,
+  t: (k: AppStringKey) => string
+): string {
+  if (confPct < 40) return t("market.adviceStrengthSoft");
+  if (confPct < 68) return t("market.adviceStrengthMid");
+  return t("market.adviceStrengthFirm");
+}
+
+const ADVICE_HEADLINES_SHOWN = 3;
+
 function formatMmks(n: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
     n
-  );
-}
-
-function RicePriceMiniBars({
-  series,
-  locale,
-}: {
-  series: { dateIso: string; mid: number }[];
-  locale: AppLocale;
-}) {
-  if (series.length < 2) {
-    return (
-      <Text style={styles.chartEmpty}>
-        {locale === "my"
-          ? "ပြသရန် ဈေးမှတ်တမ်း မလုံလောက်ပါ။"
-          : "Not enough history for a chart."}
-      </Text>
-    );
-  }
-  const mids = series.map((s) => s.mid);
-  const minV = Math.min(...mids);
-  const maxV = Math.max(...mids);
-  const span = maxV - minV || 1;
-  const H = 112;
-  return (
-    <View style={styles.chartBlock}>
-      <View style={[styles.chartBars, { height: H }]}>
-        {series.map((p) => {
-          const h = Math.max(6, ((p.mid - minV) / span) * (H - 28));
-          return (
-            <View key={p.dateIso} style={styles.chartBarCol}>
-              <View style={[styles.chartBar, { height: h }]} />
-              <Text style={styles.chartBarDate} numberOfLines={1}>
-                {p.dateIso.slice(5)}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-      <Text style={styles.chartRangeLabel}>
-        {formatMmks(Math.round(minV))} – {formatMmks(Math.round(maxV))}{" "}
-        {locale === "my" ? "ကျပ်" : "MMK"}
-      </Text>
-    </View>
   );
 }
 
@@ -122,60 +92,62 @@ function MlAdviceRationaleMobile({
 }) {
   const confPct = Math.round(detail.confidenceHint * 100);
   const cond = weatherCodeLabelLocale(weatherSnap.weatherCode, locale);
+  const strength = adviceStrengthWord(confPct, t);
+  const showHeadlines = newsLines.slice(0, ADVICE_HEADLINES_SHOWN);
+  const moreHeadlines = newsLines.length - showHeadlines.length;
+
   return (
     <View style={styles.adviceRationale}>
-      <Text style={styles.rationaleP}>
-        {tf("market.adviceDetailsModelMove", {
+      <UiText style={styles.rationaleP}>
+        {tf("market.adviceWhySummary", {
           pct: formatSignedPercent(detail.nextDayPctChange),
+          strength,
         })}
-      </Text>
-      <Text style={styles.rationaleP}>
-        {tf("market.adviceDetailsSignal", { pct: confPct })}
-      </Text>
-      <Text style={styles.rationaleP}>{t("market.adviceDetailsSignalNote")}</Text>
-      <Text style={styles.rationaleP}>
-        {tf("market.adviceDetailsSentiment", {
-          score: formatSentimentScore(detail.sentimentScore),
-        })}
-      </Text>
-      <Text style={styles.rationaleP}>
-        {t("market.adviceDetailsSentimentHint")}
-      </Text>
-      <Text style={styles.rationaleLabel}>
-        {t("market.adviceDetailsNewsLabel")}
-      </Text>
+      </UiText>
+      <UiText style={styles.rationaleP}>{t("market.adviceWhyTrust")}</UiText>
+      <UiText style={styles.rationaleP}>{t("market.adviceWhyInputs")}</UiText>
       {usedPlaceholderNews ? (
-        <Text style={styles.rationaleP}>
+        <UiText style={styles.rationaleP}>
           {t("market.adviceDetailsPlaceholderNews")}
-        </Text>
+        </UiText>
       ) : null}
-      {newsLines.map((line, i) => (
-        <Text key={i} style={styles.rationaleBullet}>
-          {"\u2022 "}
-          {line}
-        </Text>
-      ))}
-      {!usedPlaceholderNews && newsLines.length === 0 ? (
-        <Text style={styles.rationaleP}>
+      {!usedPlaceholderNews && newsLines.length > 0 ? (
+        <>
+          <UiText style={styles.rationaleLabel}>
+            {t("market.adviceWhyHeadlines")}
+          </UiText>
+          {showHeadlines.map((line, i) => (
+            <UiText key={i} style={styles.rationaleBullet}>
+              {"\u2022 "}
+              {line}
+            </UiText>
+          ))}
+          {moreHeadlines > 0 ? (
+            <UiText style={styles.rationaleMore}>
+              {tf("market.adviceWhyHeadlinesMore", { n: moreHeadlines })}
+            </UiText>
+          ) : null}
+        </>
+      ) : !usedPlaceholderNews ? (
+        <UiText style={styles.rationaleP}>
           {t("market.adviceDetailsPlaceholderNews")}
-        </Text>
+        </UiText>
       ) : null}
-      <Text style={styles.rationaleP}>
-        {tf("market.adviceDetailsWeather", {
+      <UiText style={styles.rationaleP}>
+        {tf("market.adviceWhyWeather", {
           temp: Math.round(weatherSnap.temperatureC * 10) / 10,
           condition: cond,
-          rain: detail.rainfallMm,
         })}
-      </Text>
-      <Text style={styles.rationaleP}>
-        {tf("market.adviceDetailsPattern", {
+      </UiText>
+      <UiText style={styles.rationaleP}>
+        {tf("market.adviceWhyTrend", {
           d1: formatSignedPercent(detail.priceChange1dPct),
           d7: formatSignedPercent(detail.priceChange7dPct),
         })}
-      </Text>
-      <Text style={styles.rationaleP}>
-        {tf("market.adviceDetailsScreenRule", { verdict: screenVerdictLabel })}
-      </Text>
+      </UiText>
+      <UiText style={styles.rationaleP}>
+        {tf("market.adviceWhySimpleRead", { verdict: screenVerdictLabel })}
+      </UiText>
     </View>
   );
 }
@@ -216,7 +188,7 @@ function MlAdviceRow({
       accessibilityLabel={t(titleKey)}
       accessibilityHint={t("market.adviceDetailsToggle")}
     >
-      <Text
+      <UiText
         style={[
           styles.adviceGlyph,
           advice === "hold" && styles.adviceGlyphHold,
@@ -225,11 +197,11 @@ function MlAdviceRow({
         ]}
       >
         {glyph}
-      </Text>
+      </UiText>
       <View style={styles.adviceTextWrap}>
-        <Text style={styles.adviceTitle}>{t(titleKey)}</Text>
-        <Text style={styles.adviceSub}>{t(subKey)}</Text>
-        <Text style={styles.adviceTapHint}>{t("market.adviceDetailsToggle")}</Text>
+        <UiText style={styles.adviceTitle}>{t(titleKey)}</UiText>
+        <UiText style={styles.adviceSub}>{t(subKey)}</UiText>
+        <UiText style={styles.adviceTapHint}>{t("market.adviceDetailsToggle")}</UiText>
       </View>
     </Pressable>
   );
@@ -237,7 +209,18 @@ function MlAdviceRow({
 
 export function MarketTab() {
   const { locale, t, tf } = useI18n();
-  const selected = useMemo(() => getPrimaryRiceMarketItem(), []);
+  const [itemId, setItemId] = useState(() => initialMarketTabItemId());
+  const [itemFilter, setItemFilter] = useState("");
+  const selected = useMemo(
+    () => getMarketItemById(itemId) ?? getDefaultMarketItemForUi(),
+    [itemId]
+  );
+  const { shownItems, allMatching } = useMemo(() => {
+    const all = itemFilter.trim()
+      ? searchMarketItems(itemFilter)
+      : [...MARKET_ITEMS];
+    return { allMatching: all, shownItems: all.slice(0, 120) };
+  }, [itemFilter]);
   const [newsAuto, setNewsAuto] = useState("");
   const [newsLoading, setNewsLoading] = useState(true);
   const [weatherSnap, setWeatherSnap] = useState<CurrentWeatherSnapshot | null>(
@@ -308,7 +291,7 @@ export function MarketTab() {
 
   useEffect(() => {
     if (!mlBase || !weatherSnap || newsLoading) return;
-    const prices = recentMidPricesForMl(selected, 8);
+    const prices = recentMidPricesForInference(selected, 8);
     if (!prices) {
       setMlErr(t("market.mlBackendNeedHistory"));
       return;
@@ -319,7 +302,11 @@ export function MarketTab() {
     setMlDetail(null);
     setAdviceDetailOpen(false);
     const headline = newsAuto.trim() || ML_HEADLINE_FALLBACK;
-    const momentum = midPriceMomentumPct(prices);
+    const rawMids = observationMidsOldestToNewest(selected);
+    const momentum =
+      rawMids.length >= 8
+        ? midPriceMomentumPct(rawMids.slice(-8))
+        : null;
     const rainMm = rainfallMmHintFromWeatherCode(weatherSnap.weatherCode);
     fetchMlNextDayDetail({
       avgPrices: prices,
@@ -353,6 +340,36 @@ export function MarketTab() {
     screenNewsVerdict(prediction?.factors.newsVerdict)
   );
 
+  const latestDateIso = useMemo(() => {
+    if (chartSeries.length > 0) {
+      return chartSeries[chartSeries.length - 1]!.dateIso;
+    }
+    return prediction?.baselineDateIso ?? null;
+  }, [chartSeries, prediction]);
+
+  const latestDateLabel = useMemo(() => {
+    if (!latestDateIso) return null;
+    return formatLongDateLabel(latestDateIso, locale);
+  }, [latestDateIso, locale]);
+
+  const forecastForDateLabel =
+    prediction != null
+      ? formatLongDateLabel(tomorrowDateIsoLocal(), locale)
+      : null;
+
+  const mlForecastKyat =
+    prediction && mlDetail
+      ? forecastKyatFromMlPct(
+          prediction.baselineMid,
+          mlDetail.nextDayPctChange,
+          prediction.baselineLow,
+          prediction.baselineHigh
+        )
+      : null;
+
+  const displayForecastMid =
+    mlForecastKyat?.mid ?? prediction?.predictedMid ?? null;
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -360,51 +377,117 @@ export function MarketTab() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.titleRow}>
-        <Ionicons name="storefront-outline" size={28} color={theme.accent} />
-        <Text style={styles.pageTitle}>{t("market.title")}</Text>
+        <Ionicons
+          name="storefront-outline"
+          size={28}
+          color={theme.accent}
+          style={styles.titleIcon}
+        />
+        <UiText style={styles.pageTitle}>{t("market.title")}</UiText>
       </View>
-      <Text style={styles.hint}>
-        {tf("market.hint", { generated: RICE_MARKET_SHEET_GENERATED_AT_ISO })}
-      </Text>
-      <Text style={styles.hintTight}>{t("market.autoHint")}</Text>
-      {RICE_MARKET_USES_SEED_DATA ? (
-        <Text style={styles.riceSeedNote}>{t("market.riceSeedNote")}</Text>
-      ) : null}
-
       <View style={styles.card}>
-        <Text style={styles.resultLabel}>{t("market.selected")}</Text>
-        <Text style={styles.detailTitle}>{selected.itemDetails}</Text>
-        <Text style={styles.meta}>
+        <UiText style={styles.resultLabel}>{t("market.chooseItem")}</UiText>
+        <TextInput
+          style={styles.filterInput}
+          placeholder={t("market.itemFilterPlaceholder")}
+          placeholderTextColor={theme.fgMuted}
+          value={itemFilter}
+          onChangeText={setItemFilter}
+          accessibilityLabel={t("market.searchAria")}
+        />
+        <UiText style={styles.meta}>
+          {tf("market.itemListHint", {
+            shown: shownItems.length,
+            total: allMatching.length,
+          })}
+        </UiText>
+        {allMatching.length > shownItems.length ? (
+          <UiText style={styles.meta}>{t("market.itemListCap")}</UiText>
+        ) : null}
+        <ScrollView
+          style={styles.itemPicker}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+        >
+          {shownItems.map((it) => (
+            <Pressable
+              key={it.id}
+              onPress={() => setItemId(it.id)}
+              style={({ pressed }) => [
+                styles.itemRow,
+                it.id === itemId && styles.itemRowActive,
+                pressed && styles.itemRowPressed,
+              ]}
+            >
+              <UiText style={styles.itemRowTitle}>{it.itemDetails}</UiText>
+              <UiText style={styles.itemRowMeta}>{it.itemCategory}</UiText>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        <UiText style={styles.resultLabel}>{t("market.selected")}</UiText>
+        <UiText style={styles.detailTitle}>{selected.itemDetails}</UiText>
+        <UiText style={styles.meta}>
           {[selected.group, selected.mainCategory, selected.itemCategory]
             .filter(Boolean)
             .join(" · ")}
-        </Text>
+        </UiText>
 
-        <Text style={styles.resultLabel}>{t("market.chartTitle")}</Text>
-        <RicePriceMiniBars series={chartSeries} locale={locale} />
+        <UiText style={styles.resultLabel}>{t("market.chartTitle")}</UiText>
+        {latestDateLabel ? (
+          <UiText style={styles.dateCaption}>
+            {tf("market.chartDataThrough", { date: latestDateLabel })}
+          </UiText>
+        ) : null}
+        <PriceHistoryChartMobile series={chartSeries} locale={locale} />
 
-        {prediction ? (
+        {displayForecastMid != null && prediction ? (
           <View style={styles.prediction}>
-            <Text style={styles.resultLabel}>
+            <UiText style={styles.resultLabel}>
               {t("market.forecastPriceTitle")}
-            </Text>
-            <Text style={styles.predMid}>
-              {formatMmks(prediction.predictedMid)} {t("common.mmk")}
-            </Text>
-            <Text style={styles.disclaimer}>
-              {t("market.predictionDisclaimer")}
-            </Text>
+            </UiText>
+            {latestDateLabel ? (
+              <UiText style={styles.dateCaption}>
+                {tf("market.forecastFromLatest", { date: latestDateLabel })}
+              </UiText>
+            ) : null}
+            {forecastForDateLabel ? (
+              <UiText style={styles.forecastForDateCaption}>
+                {tf("market.forecastForDate", { date: forecastForDateLabel })}
+              </UiText>
+            ) : null}
+            <UiText style={styles.predMid}>
+              {formatMmks(displayForecastMid)} {t("common.mmk")}
+            </UiText>
+            {mlForecastKyat ? (
+              <UiText style={styles.dateCaption}>
+                {t("market.forecastMlSource")}
+              </UiText>
+            ) : mlBase && mlLoading ? (
+              <UiText style={styles.dateCaption}>
+                {t("market.forecastAwaitingMl")}
+              </UiText>
+            ) : (
+              <UiText style={styles.dateCaption}>
+                {t("market.forecastHeuristicSource")}
+              </UiText>
+            )}
           </View>
         ) : null}
 
         <View style={styles.mlBlock}>
-          <Text style={styles.resultLabel}>{t("market.adviceTitle")}</Text>
+          <UiText style={styles.resultLabel}>{t("market.adviceTitle")}</UiText>
+          {latestDateLabel ? (
+            <UiText style={styles.dateCaption}>
+              {tf("market.mlUsesLatestDate", { date: latestDateLabel })}
+            </UiText>
+          ) : null}
           {mlBase ? (
             <>
               {mlLoading ? (
-                <Text style={styles.meta}>{t("market.mlBackendLoading")}</Text>
+                <UiText style={styles.meta}>{t("market.mlBackendLoading")}</UiText>
               ) : null}
-              {mlErr ? <Text style={styles.mlErr}>{mlErr}</Text> : null}
+              {mlErr ? <UiText style={styles.mlErr}>{mlErr}</UiText> : null}
               {mlDetail != null && weatherSnap ? (
                 <>
                   <MlAdviceRow
@@ -431,13 +514,13 @@ export function MarketTab() {
                 </>
               ) : null}
               {mlDetail != null ? (
-                <Text style={styles.adviceDisclaimer}>
+                <UiText style={styles.adviceDisclaimer}>
                   {t("market.adviceDisclaimer")}
-                </Text>
+                </UiText>
               ) : null}
             </>
           ) : (
-            <Text style={styles.hintTight}>{t("market.mlBackendNoUrl")}</Text>
+            <UiText style={styles.hintTight}>{t("market.mlBackendNoUrl")}</UiText>
           )}
         </View>
       </View>
@@ -450,74 +533,74 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 32 },
   titleRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
-    marginBottom: 8,
+    marginBottom: 10,
   },
+  titleIcon: { marginTop: 4 },
   pageTitle: {
     fontSize: 24,
     fontWeight: "700",
     color: theme.fg,
     flex: 1,
-  },
-  hint: {
-    color: theme.fgMuted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 8,
+    flexShrink: 1,
+    lineHeight: myLh(24),
+    paddingTop: 2,
   },
   hintTight: {
     color: theme.fgMuted,
     fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 10,
-  },
-  riceSeedNote: {
-    color: "rgba(200, 220, 205, 0.85)",
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 10,
-  },
-  chartBlock: { marginBottom: 12 },
-  chartBars: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: 4,
-    marginTop: 6,
-  },
-  chartBarCol: { flex: 1, alignItems: "center", minWidth: 28 },
-  chartBar: {
-    width: "70%",
-    maxWidth: 16,
-    backgroundColor: "#7dd89a",
-    borderRadius: 4,
-    opacity: 1,
-  },
-  chartBarDate: {
-    marginTop: 4,
-    fontSize: 10,
-    fontWeight: "600",
-    color: "rgba(232, 244, 236, 0.9)",
-  },
-  chartEmpty: {
-    fontSize: 14,
-    color: "rgba(232, 244, 236, 0.75)",
-    marginBottom: 8,
-  },
-  chartRangeLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(232, 244, 236, 0.92)",
-    marginTop: 6,
+    lineHeight: myLh(14),
+    marginBottom: 12,
   },
   card: {
     marginTop: 8,
     backgroundColor: theme.surface,
     borderRadius: 14,
     padding: 16,
+    paddingVertical: 18,
     borderWidth: 1,
     borderColor: theme.border,
+  },
+  filterInput: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: theme.fg,
+    marginBottom: 8,
+  },
+  itemPicker: {
+    maxHeight: 220,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 10,
+  },
+  itemRow: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  itemRowActive: {
+    backgroundColor: "rgba(76, 175, 80, 0.12)",
+  },
+  itemRowPressed: { opacity: 0.92 },
+  itemRowTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.fg,
+    lineHeight: myLh(14),
+  },
+  itemRowMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: theme.price,
+    fontWeight: "700",
+    lineHeight: myLh(12),
   },
   resultLabel: {
     fontSize: 12,
@@ -525,21 +608,36 @@ const styles = StyleSheet.create({
     color: theme.fgMuted,
     textTransform: "uppercase",
     letterSpacing: 0.8,
-    marginBottom: 6,
+    marginBottom: 8,
     marginTop: 4,
+    lineHeight: myLh(12),
   },
   detailTitle: {
     fontSize: 17,
     fontWeight: "700",
     color: theme.fg,
-    lineHeight: 24,
-    marginBottom: 6,
+    lineHeight: myLh(17),
+    marginBottom: 8,
   },
   meta: {
     color: theme.fgMuted,
     fontSize: 14,
     marginBottom: 12,
-    lineHeight: 20,
+    lineHeight: myLh(14),
+  },
+  dateCaption: {
+    color: theme.fgMuted,
+    fontSize: 13,
+    lineHeight: myLh(13),
+    marginBottom: 10,
+    marginTop: 2,
+  },
+  forecastForDateCaption: {
+    color: theme.fg,
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: myLh(14),
+    marginBottom: 8,
   },
   prediction: {
     marginTop: 8,
@@ -551,13 +649,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: theme.price,
-    marginBottom: 6,
-  },
-  disclaimer: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 18,
-    color: theme.fgMuted,
+    marginBottom: 8,
+    lineHeight: myLh(24),
   },
   mlBlock: {
     marginTop: 12,
@@ -569,6 +662,7 @@ const styles = StyleSheet.create({
     color: "#e57373",
     fontSize: 14,
     marginTop: 8,
+    lineHeight: myLh(14),
   },
   adviceRow: {
     flexDirection: "row",
@@ -576,7 +670,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 6,
     marginBottom: 4,
-    padding: 12,
+    padding: 14,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: theme.border,
@@ -596,7 +690,7 @@ const styles = StyleSheet.create({
   adviceGlyph: {
     fontSize: 22,
     fontWeight: "800",
-    lineHeight: 26,
+    lineHeight: myLh(22),
   },
   adviceGlyphHold: { color: "#66bb6a" },
   adviceGlyphSell: { color: "#ef5350" },
@@ -606,23 +700,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: theme.fg,
+    lineHeight: myLh(16),
   },
   adviceSub: {
-    marginTop: 4,
+    marginTop: 6,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: myLh(13),
     color: theme.fgMuted,
   },
   adviceTapHint: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 12,
     fontWeight: "600",
     color: theme.accent,
+    lineHeight: myLh(12),
   },
   adviceRowPressed: { opacity: 0.9 },
   adviceRationale: {
     marginTop: 10,
-    padding: 12,
+    padding: 14,
     borderRadius: 10,
     backgroundColor: "rgba(0,0,0,0.06)",
     borderWidth: 1,
@@ -630,9 +726,9 @@ const styles = StyleSheet.create({
   },
   rationaleP: {
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: myLh(13),
     color: theme.fgMuted,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   rationaleLabel: {
     fontSize: 11,
@@ -640,20 +736,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: "uppercase",
     color: theme.fg,
-    marginBottom: 4,
-    marginTop: 4,
+    marginBottom: 6,
+    marginTop: 6,
+    lineHeight: myLh(11),
   },
   rationaleBullet: {
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: myLh(13),
     color: theme.fgMuted,
-    marginBottom: 4,
+    marginBottom: 6,
     paddingLeft: 4,
   },
-  adviceDisclaimer: {
-    marginTop: 8,
+  rationaleMore: {
     fontSize: 12,
-    lineHeight: 17,
+    lineHeight: myLh(12),
+    color: theme.fgMuted,
+    marginBottom: 10,
+    fontStyle: "italic",
+  },
+  adviceDisclaimer: {
+    marginTop: 10,
+    fontSize: 12,
+    lineHeight: myLh(12),
     color: theme.fgMuted,
   },
 });

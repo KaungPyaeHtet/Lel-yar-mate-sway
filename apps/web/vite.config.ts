@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 
 /** Must match `rssUrl` hosts in `@agriora/core` `NEWS_FEED_SOURCES` (vite config cannot import core reliably). */
 const RSS_PROXY_HOSTS = new Set([
@@ -79,13 +79,21 @@ function rssFetchDevProxy(): import('vite').Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), rssFetchDevProxy()],
-  server: {
-    /** Listen on all interfaces so phones / other PCs on the LAN can open the dev URL. */
-    host: true,
-  },
-  preview: {
-    host: true,
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const viteMlUrl = env.VITE_ML_API_URL?.trim() ?? ''
+  return {
+    define: {
+      __AGRIORA_VITE_ML_URL__: JSON.stringify(viteMlUrl),
+      __AGRIORA_VITE_DEV__: mode === 'development',
+    },
+    plugins: [react(), rssFetchDevProxy()],
+    server: {
+      /** Listen on all interfaces so phones / other PCs on the LAN can open the dev URL. */
+      host: true,
+    },
+    preview: {
+      host: true,
+    },
+  }
 })

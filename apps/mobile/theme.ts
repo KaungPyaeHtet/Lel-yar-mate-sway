@@ -23,3 +23,11 @@ export const theme = {
   chipInactiveFg: "#2a3d2c",
   placeholder: "rgba(61, 82, 64, 0.45)",
 } as const;
+
+/**
+ * Line height for Myanmar script (stacked consonants / vowel signs need extra vertical room).
+ * Use on mobile anywhere Burmese strings render so glyphs are not clipped.
+ */
+export function myLh(fontSize: number): number {
+  return Math.round(fontSize * 1.52);
+}

@@ -1,4 +1,4 @@
-/** Offline heuristic: macro + crop price direction (not financial advice). */
+/** Rule-based heuristic: macro + crop price direction (not financial advice). */
 
 export type Verdict = "up" | "down" | "flat";
 
