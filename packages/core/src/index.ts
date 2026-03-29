@@ -51,6 +51,7 @@ export {
   latestMidpoint,
   latestObservation,
   predictItemPrice,
+  recentMidPricesForMl,
   searchMarketItems,
   weatherPriceModifier,
   MARKET_GENERATED_AT_ISO,
@@ -61,3 +62,19 @@ export {
   type MarketItem,
   type PriceObservation,
 } from "./market";
+
+export {
+  fetchMlNextDayPct,
+  fetchMlSentiment,
+  getMlApiBaseUrl,
+} from "./mlApi";
+
+export {
+  RICE_MARKET_ITEMS,
+  RICE_MARKET_SHEET_GENERATED_AT_ISO,
+  RICE_MARKET_USES_SEED_DATA,
+  getRiceMarketItemById,
+  isRiceMarketItemFromSheet,
+  riceMidSeriesForChart,
+  searchRiceMarketItems,
+} from "./riceMarket";

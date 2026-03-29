@@ -4,19 +4,25 @@ import {
   type MarketItem,
   type Verdict,
   fetchCurrentWeather,
+  fetchMlNextDayPct,
   findNearestPlace,
+  getMlApiBaseUrl,
   latestMidpoint,
   predictItemPrice,
-  searchMarketItems,
+  recentMidPricesForMl,
+  riceMidSeriesForChart,
+  RICE_MARKET_ITEMS,
+  RICE_MARKET_SHEET_GENERATED_AT_ISO,
+  RICE_MARKET_USES_SEED_DATA,
+  searchRiceMarketItems,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
-  MARKET_GENERATED_AT_ISO,
-  MARKET_ITEMS,
 } from "@agriora/core";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BROWSER_GEO_OPTIONS, canUseBrowserGeolocation } from "./browserGeo";
 import { IconCity, IconLocationPin, IconMarket } from "./icons";
 import { useI18n } from "./LocaleContext";
+import { PriceHistoryChart } from "./PriceHistoryChart";
 
 function formatMmks(n: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
@@ -34,12 +40,27 @@ export function MarketPanel() {
   );
   const [weatherLabel, setWeatherLabel] = useState<string | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [mlPct, setMlPct] = useState<number | null>(null);
+  const [mlErr, setMlErr] = useState<string | null>(null);
+  const [mlLoading, setMlLoading] = useState(false);
+
+  const mlBase = getMlApiBaseUrl();
 
   const wl = locale === "my" ? "my" : "en";
 
+  useEffect(() => {
+    setMlPct(null);
+    setMlErr(null);
+  }, [selected?.id]);
+
   const filtered = useMemo(
-    () => searchMarketItems(query).slice(0, 80),
+    () => searchRiceMarketItems(query).slice(0, 80),
     [query]
+  );
+
+  const chartSeries = useMemo(
+    () => (selected ? riceMidSeriesForChart(selected) : []),
+    [selected]
   );
 
   const prediction =
@@ -114,6 +135,32 @@ export function MarketPanel() {
     );
   }
 
+  async function fetchPythonMl() {
+    if (!selected) return;
+    const prices = recentMidPricesForMl(selected, 8);
+    if (!prices) {
+      setMlErr(t("market.mlBackendNeedHistory"));
+      return;
+    }
+    setMlLoading(true);
+    setMlErr(null);
+    try {
+      const pct = await fetchMlNextDayPct({
+        avgPrices: prices,
+        rainfallMm: 5,
+        tempC: weatherSnap?.temperatureC ?? 28,
+        newsHeadline: news.trim() || "No headline.",
+      });
+      setMlPct(pct);
+    } catch (e) {
+      setMlErr(
+        e instanceof Error ? e.message : t("errors.mlBackend")
+      );
+    } finally {
+      setMlLoading(false);
+    }
+  }
+
   return (
     <div className="panel market-panel">
       <div className="page-title-row">
@@ -122,10 +169,13 @@ export function MarketPanel() {
       </div>
       <p className="hint">
         {tf("market.hint", {
-          count: MARKET_ITEMS.length,
-          generated: MARKET_GENERATED_AT_ISO,
+          count: RICE_MARKET_ITEMS.length,
+          generated: RICE_MARKET_SHEET_GENERATED_AT_ISO,
         })}
       </p>
+      {RICE_MARKET_USES_SEED_DATA && (
+        <p className="hint tight rice-seed-note">{t("market.riceSeedNote")}</p>
+      )}
 
       <input
         type="search"
@@ -166,6 +216,9 @@ export function MarketPanel() {
               .filter(Boolean)
               .join(" · ")}
           </p>
+
+          <p className="result-label">{t("market.chartTitle")}</p>
+          <PriceHistoryChart series={chartSeries} locale={locale} />
 
           <div className="weather-actions">
             <button
@@ -234,6 +287,34 @@ export function MarketPanel() {
               <p className="disclaimer">{t("market.predictionDisclaimer")}</p>
             </div>
           )}
+
+          <div className="ml-backend-block">
+            <p className="result-label">{t("market.mlBackendTitle")}</p>
+            <p className="hint tight">{t("market.mlBackendHint")}</p>
+            {mlBase ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={mlLoading}
+                  onClick={() => void fetchPythonMl()}
+                >
+                  {mlLoading
+                    ? t("market.mlBackendLoading")
+                    : t("market.mlBackendFetch")}
+                </button>
+                {mlErr && <p className="weather-msg">{mlErr}</p>}
+                {mlPct != null && (
+                  <p className="meta">
+                    {t("market.mlBackendResult")}:{" "}
+                    <strong>{mlPct.toFixed(3)}</strong>
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="hint tight">{t("market.mlBackendNoUrl")}</p>
+            )}
+          </div>
         </div>
       )}
     </div>

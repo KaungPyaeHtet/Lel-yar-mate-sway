@@ -39,6 +39,26 @@ export function latestMidpoint(item: MarketItem): number | null {
   return last ? mid(last) : null;
 }
 
+/**
+ * Last `count` usable mid-prices (from sheet observations), oldest → newest.
+ * For Python ML API: need at least 8 points.
+ */
+export function recentMidPricesForMl(
+  item: MarketItem,
+  count = 8
+): number[] | null {
+  const obsSorted = [...item.observations].sort((a, b) =>
+    a.dateIso.localeCompare(b.dateIso)
+  );
+  const mids: number[] = [];
+  for (const o of obsSorted) {
+    const m = mid(o);
+    if (m != null) mids.push(m);
+  }
+  if (mids.length < count) return null;
+  return mids.slice(-count);
+}
+
 export function searchMarketItems(query: string): MarketItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return [...MARKET_ITEMS];

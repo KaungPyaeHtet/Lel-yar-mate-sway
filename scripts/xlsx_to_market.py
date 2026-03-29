@@ -3,6 +3,10 @@
 Read root data.xlsx (Myanmar ag market lows/highs by date) and emit
 packages/core/src/marketData.generated.ts for @agriora/core.
 
+The app’s Rice tab uses @agriora/core `RICE_MARKET_ITEMS`: rows whose
+item category or detail contains စပါး / ဆန် (see riceMarket.ts). If none,
+demo rice series use the same date columns as this export.
+
 Usage (from repo root, with venv + openpyxl):
   .venv/bin/pip install -r requirements-market.txt
   .venv/bin/python scripts/xlsx_to_market.py

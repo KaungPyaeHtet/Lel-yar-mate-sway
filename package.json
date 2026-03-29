@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "postinstall": "npm run build --workspace=@agriora/core",
+    "ml:api": "PATH=\"$PWD/.venv-ml/bin:$PATH\" python3 -m uvicorn backend.server:app --host 0.0.0.0 --port 8000 --reload",
     "web": "npm run dev --workspace=@agriora/web",
     "mobile": "npm run start --workspace=@agriora/mobile",
     "build:web": "npm run build --workspace=@agriora/web",

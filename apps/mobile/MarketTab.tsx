@@ -1,20 +1,26 @@
 import {
   MYANMAR_PLACES,
+  type AppLocale,
   type CurrentWeatherSnapshot,
   type MarketItem,
   type Verdict,
   fetchCurrentWeather,
+  fetchMlNextDayPct,
   findNearestPlace,
+  getMlApiBaseUrl,
   latestMidpoint,
   predictItemPrice,
-  searchMarketItems,
+  recentMidPricesForMl,
+  riceMidSeriesForChart,
+  RICE_MARKET_ITEMS,
+  RICE_MARKET_SHEET_GENERATED_AT_ISO,
+  RICE_MARKET_USES_SEED_DATA,
+  searchRiceMarketItems,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
-  MARKET_GENERATED_AT_ISO,
-  MARKET_ITEMS,
 } from "@agriora/core";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -33,6 +39,50 @@ function formatMmks(n: number) {
   );
 }
 
+function RicePriceMiniBars({
+  series,
+  locale,
+}: {
+  series: { dateIso: string; mid: number }[];
+  locale: AppLocale;
+}) {
+  if (series.length < 2) {
+    return (
+      <Text style={styles.chartEmpty}>
+        {locale === "my"
+          ? "ပြသရန် ဈေးမှတ်တမ်း မလုံလောက်ပါ။"
+          : "Not enough history for a chart."}
+      </Text>
+    );
+  }
+  const mids = series.map((s) => s.mid);
+  const minV = Math.min(...mids);
+  const maxV = Math.max(...mids);
+  const span = maxV - minV || 1;
+  const H = 112;
+  return (
+    <View style={styles.chartBlock}>
+      <View style={[styles.chartBars, { height: H }]}>
+        {series.map((p) => {
+          const h = Math.max(6, ((p.mid - minV) / span) * (H - 28));
+          return (
+            <View key={p.dateIso} style={styles.chartBarCol}>
+              <View style={[styles.chartBar, { height: h }]} />
+              <Text style={styles.chartBarDate} numberOfLines={1}>
+                {p.dateIso.slice(5)}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+      <Text style={styles.chartRangeLabel}>
+        {formatMmks(Math.round(minV))} – {formatMmks(Math.round(maxV))}{" "}
+        {locale === "my" ? "ကျပ်" : "MMK"}
+      </Text>
+    </View>
+  );
+}
+
 export function MarketTab() {
   const { locale, t, tf } = useI18n();
   const wl = locale === "my" ? "my" : "en";
@@ -44,10 +94,25 @@ export function MarketTab() {
   );
   const [weatherLabel, setWeatherLabel] = useState<string | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [mlPct, setMlPct] = useState<number | null>(null);
+  const [mlErr, setMlErr] = useState<string | null>(null);
+  const [mlLoading, setMlLoading] = useState(false);
+
+  const mlBase = getMlApiBaseUrl();
+
+  useEffect(() => {
+    setMlPct(null);
+    setMlErr(null);
+  }, [selected?.id]);
 
   const filtered = useMemo(
-    () => searchMarketItems(query).slice(0, 80),
+    () => searchRiceMarketItems(query).slice(0, 80),
     [query]
+  );
+
+  const chartSeries = useMemo(
+    () => (selected ? riceMidSeriesForChart(selected) : []),
+    [selected]
   );
 
   const prediction =
@@ -111,6 +176,32 @@ export function MarketTab() {
     }
   }
 
+  async function fetchPythonMl() {
+    if (!selected) return;
+    const prices = recentMidPricesForMl(selected, 8);
+    if (!prices) {
+      setMlErr(t("market.mlBackendNeedHistory"));
+      return;
+    }
+    setMlLoading(true);
+    setMlErr(null);
+    try {
+      const pct = await fetchMlNextDayPct({
+        avgPrices: prices,
+        rainfallMm: 5,
+        tempC: weatherSnap?.temperatureC ?? 28,
+        newsHeadline: news.trim() || "No headline.",
+      });
+      setMlPct(pct);
+    } catch (e) {
+      setMlErr(
+        e instanceof Error ? e.message : t("errors.mlBackend")
+      );
+    } finally {
+      setMlLoading(false);
+    }
+  }
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -123,10 +214,13 @@ export function MarketTab() {
       </View>
       <Text style={styles.hint}>
         {tf("market.hint", {
-          count: MARKET_ITEMS.length,
-          generated: MARKET_GENERATED_AT_ISO,
+          count: RICE_MARKET_ITEMS.length,
+          generated: RICE_MARKET_SHEET_GENERATED_AT_ISO,
         })}
       </Text>
+      {RICE_MARKET_USES_SEED_DATA ? (
+        <Text style={styles.riceSeedNote}>{t("market.riceSeedNote")}</Text>
+      ) : null}
 
       <TextInput
         style={styles.search}
@@ -161,6 +255,9 @@ export function MarketTab() {
               .filter(Boolean)
               .join(" · ")}
           </Text>
+
+          <Text style={styles.resultLabel}>{t("market.chartTitle")}</Text>
+          <RicePriceMiniBars series={chartSeries} locale={locale} />
 
           <View style={styles.weatherRow}>
             <Pressable
@@ -236,6 +333,40 @@ export function MarketTab() {
               </Text>
             </View>
           ) : null}
+
+          <View style={styles.mlBlock}>
+            <Text style={styles.resultLabel}>{t("market.mlBackendTitle")}</Text>
+            <Text style={styles.hintTight}>{t("market.mlBackendHint")}</Text>
+            {mlBase ? (
+              <>
+                <Pressable
+                  style={[styles.btnSec, mlLoading && styles.btnDisabled]}
+                  disabled={mlLoading}
+                  onPress={() => void fetchPythonMl()}
+                >
+                  <View style={styles.btnSecInner}>
+                    <Ionicons name="cloud-outline" size={20} color={theme.accent} />
+                    <Text style={styles.btnSecText}>
+                      {mlLoading
+                        ? t("market.mlBackendLoading")
+                        : t("market.mlBackendFetch")}
+                    </Text>
+                  </View>
+                </Pressable>
+                {mlErr ? (
+                  <Text style={styles.mlErr}>{mlErr}</Text>
+                ) : null}
+                {mlPct != null ? (
+                  <Text style={styles.meta}>
+                    {t("market.mlBackendResult")}:{" "}
+                    <Text style={styles.mlPct}>{mlPct.toFixed(3)}</Text>
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              <Text style={styles.hintTight}>{t("market.mlBackendNoUrl")}</Text>
+            )}
+          </View>
         </View>
       )}
     </ScrollView>
@@ -262,6 +393,45 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     marginBottom: 12,
+  },
+  riceSeedNote: {
+    color: "rgba(200, 220, 205, 0.85)",
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+  chartBlock: { marginBottom: 12 },
+  chartBars: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 4,
+    marginTop: 6,
+  },
+  chartBarCol: { flex: 1, alignItems: "center", minWidth: 28 },
+  chartBar: {
+    width: "70%",
+    maxWidth: 16,
+    backgroundColor: "#7dd89a",
+    borderRadius: 4,
+    opacity: 1,
+  },
+  chartBarDate: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: "600",
+    color: "rgba(232, 244, 236, 0.9)",
+  },
+  chartEmpty: {
+    fontSize: 14,
+    color: "rgba(232, 244, 236, 0.75)",
+    marginBottom: 8,
+  },
+  chartRangeLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "rgba(232, 244, 236, 0.92)",
+    marginTop: 6,
   },
   hintTight: {
     color: theme.fgMuted,
@@ -377,4 +547,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: theme.fgMuted,
   },
+  mlBlock: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+  },
+  mlErr: {
+    color: "#e57373",
+    fontSize: 14,
+    marginTop: 8,
+  },
+  mlPct: { fontWeight: "700", color: theme.price },
 });

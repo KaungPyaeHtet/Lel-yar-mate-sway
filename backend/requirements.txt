@@ -1,0 +1,18 @@
+# Rice price ML backend (CPU-friendly defaults; install torch for your platform)
+numpy>=1.24
+pandas>=2.0
+scikit-learn>=1.3
+xgboost>=2.0
+transformers>=4.36
+safetensors>=0.4
+accelerate>=0.26
+
+# PyTorch: pick one — see https://pytorch.org/get-started/locally/
+torch>=2.1
+
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.0
+
+# Optional: Google TimesFM (heavy; may not work on Apple Silicon — fallback is built in)
+# pip install git+https://github.com/google-research/timesfm.git

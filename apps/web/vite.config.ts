@@ -81,4 +81,11 @@ function rssFetchDevProxy(): import('vite').Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), rssFetchDevProxy()],
+  server: {
+    /** Listen on all interfaces so phones / other PCs on the LAN can open the dev URL. */
+    host: true,
+  },
+  preview: {
+    host: true,
+  },
 })
