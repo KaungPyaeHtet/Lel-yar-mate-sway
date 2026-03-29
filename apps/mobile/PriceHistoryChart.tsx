@@ -1,14 +1,6 @@
 import type { AppLocale } from "@agriora/core";
 import { useWindowDimensions, View, StyleSheet } from "react-native";
-import Svg, {
-  Circle,
-  Defs,
-  Line,
-  LinearGradient,
-  Path,
-  Stop,
-  Text as SvgText,
-} from "react-native-svg";
+import Svg, { Circle, Line, Path, Text as SvgText } from "react-native-svg";
 import { theme } from "./theme";
 import { UiText } from "./UiText";
 
@@ -35,7 +27,7 @@ const PAD_B = 28;
 const INNER_W = VB_W - PAD_L - PAD_R;
 const INNER_H = VB_H - PAD_T - PAD_B;
 
-/** Same line + area chart as web `PriceHistoryChart`, for React Native. */
+/** Line-only price history (no gradient fill — avoids Hermes/`Defs` issues with react-native-svg). */
 export function PriceHistoryChartMobile({
   series,
   locale,
@@ -84,20 +76,6 @@ export function PriceHistoryChartMobile({
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         preserveAspectRatio="xMidYMid meet"
       >
-        <Defs>
-          <LinearGradient id="riceLineGradM" x1="0" y1="0" x2="0" y2="1">
-            <Stop
-              offset="0"
-              stopColor="rgba(27, 107, 54, 0.2)"
-              stopOpacity={1}
-            />
-            <Stop
-              offset="1"
-              stopColor="rgba(27, 107, 54, 0.03)"
-              stopOpacity={1}
-            />
-          </LinearGradient>
-        </Defs>
         {[0, 0.5, 1].map((t) => {
           const y = PAD_T + INNER_H * (1 - t);
           return (
@@ -112,10 +90,6 @@ export function PriceHistoryChartMobile({
             />
           );
         })}
-        <Path
-          d={`${pathD} L ${xAt(series.length - 1)} ${PAD_T + INNER_H} L ${PAD_L} ${PAD_T + INNER_H} Z`}
-          fill="url(#riceLineGradM)"
-        />
         <Path
           d={pathD}
           fill="none"

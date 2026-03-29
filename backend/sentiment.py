@@ -25,21 +25,29 @@ from functools import lru_cache
 from typing import Iterable
 
 import numpy as np
-import torch
 
-# Avoid OpenMP/thread clashes with XGBoost on macOS (PyTorch before xgb load_model segfaults).
-torch.set_num_threads(1)
-torch.set_num_interop_threads(1)
+try:
+    import torch
 
-from transformers import (
-    AutoModelForMaskedLM,
-    AutoTokenizer,
-    AutoModelForSequenceClassification,
-)
-from transformers.utils import logging as hf_logging
+    # Avoid OpenMP/thread clashes with XGBoost on macOS (PyTorch before xgb load_model segfaults).
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
 
-# Quieter console; checkpoint may list UNEXPECTED keys (e.g. position_ids) — see docstring below.
-hf_logging.set_verbosity_error()
+    from transformers import (
+        AutoModelForMaskedLM,
+        AutoTokenizer,
+        AutoModelForSequenceClassification,
+    )
+    from transformers.utils import logging as hf_logging
+
+    # Quieter console; checkpoint may list UNEXPECTED keys (e.g. position_ids) — see docstring below.
+    hf_logging.set_verbosity_error()
+except ImportError:  # pragma: no cover — optional; mock / CI without torch
+    torch = None  # type: ignore[misc, assignment]
+    AutoModelForMaskedLM = None  # type: ignore[misc, assignment]
+    AutoTokenizer = None  # type: ignore[misc, assignment]
+    AutoModelForSequenceClassification = None  # type: ignore[misc, assignment]
+    hf_logging = None  # type: ignore[misc, assignment]
 
 CLIMATE_F_MODEL = "climatebert/distilroberta-base-climate-f"
 CLIMATE_SENTIMENT_MODEL = "climatebert/distilroberta-base-climate-sentiment"
@@ -364,6 +372,8 @@ def get_rice_market_sentiment(headlines_list: list[str]) -> float:
     if os.environ.get("RICE_SENTIMENT_MOCK", "").lower() in ("1", "true", "yes"):
         return float(np.clip(lex, -1.0, 1.0))
     if not headlines_list:
+        return float(np.clip(lex, -1.0, 1.0))
+    if torch is None:
         return float(np.clip(lex, -1.0, 1.0))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with _TORCH_GUARD:
