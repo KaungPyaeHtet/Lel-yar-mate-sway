@@ -1,37 +1,55 @@
 import {
   MYANMAR_PLACES,
   type AppLocale,
+  type AppStringKey,
   type CurrentWeatherSnapshot,
-  type MarketItem,
-  type Verdict,
+  type MlNextDayDetail,
+  type RiceMlAdvice,
+  adviceFromMlNextDayPct,
   fetchCurrentWeather,
-  fetchMlNextDayPct,
-  findNearestPlace,
+  fetchMlNextDayDetail,
+  fetchRiceMarketNewsContext,
+  formatSignedPercent,
   getMlApiBaseUrl,
-  latestMidpoint,
+  getPrimaryRiceMarketItem,
+  midPriceMomentumPct,
   predictItemPrice,
+  rainfallMmHintFromWeatherCode,
   recentMidPricesForMl,
   riceMidSeriesForChart,
-  RICE_MARKET_ITEMS,
+  riceNewsContextToLines,
   RICE_MARKET_SHEET_GENERATED_AT_ISO,
   RICE_MARKET_USES_SEED_DATA,
-  searchRiceMarketItems,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
 } from "@agriora/core";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useI18n } from "./LocaleContext";
 import { theme } from "./theme";
 import { resolveCoordsForWeather } from "./weatherLocation";
+
+const ML_HEADLINE_FALLBACK =
+  "Rice and commodity markets Myanmar Southeast Asia.";
+
+function formatSentimentScore(n: number): string {
+  if (Number.isNaN(n)) return "—";
+  return n >= 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
+}
+
+function screenNewsVerdict(
+  v: string | undefined
+): "up" | "down" | "flat" {
+  if (v === "up" || v === "down" || v === "flat") return v;
+  return "flat";
+}
 
 function formatMmks(n: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
@@ -83,124 +101,257 @@ function RicePriceMiniBars({
   );
 }
 
+function MlAdviceRationaleMobile({
+  locale,
+  t,
+  tf,
+  detail,
+  newsLines,
+  weatherSnap,
+  screenVerdictLabel,
+  usedPlaceholderNews,
+}: {
+  locale: AppLocale;
+  t: (k: AppStringKey) => string;
+  tf: (k: AppStringKey, vars: Record<string, string | number>) => string;
+  detail: MlNextDayDetail;
+  newsLines: string[];
+  weatherSnap: CurrentWeatherSnapshot;
+  screenVerdictLabel: string;
+  usedPlaceholderNews: boolean;
+}) {
+  const confPct = Math.round(detail.confidenceHint * 100);
+  const cond = weatherCodeLabelLocale(weatherSnap.weatherCode, locale);
+  return (
+    <View style={styles.adviceRationale}>
+      <Text style={styles.rationaleP}>
+        {tf("market.adviceDetailsModelMove", {
+          pct: formatSignedPercent(detail.nextDayPctChange),
+        })}
+      </Text>
+      <Text style={styles.rationaleP}>
+        {tf("market.adviceDetailsSignal", { pct: confPct })}
+      </Text>
+      <Text style={styles.rationaleP}>{t("market.adviceDetailsSignalNote")}</Text>
+      <Text style={styles.rationaleP}>
+        {tf("market.adviceDetailsSentiment", {
+          score: formatSentimentScore(detail.sentimentScore),
+        })}
+      </Text>
+      <Text style={styles.rationaleP}>
+        {t("market.adviceDetailsSentimentHint")}
+      </Text>
+      <Text style={styles.rationaleLabel}>
+        {t("market.adviceDetailsNewsLabel")}
+      </Text>
+      {usedPlaceholderNews ? (
+        <Text style={styles.rationaleP}>
+          {t("market.adviceDetailsPlaceholderNews")}
+        </Text>
+      ) : null}
+      {newsLines.map((line, i) => (
+        <Text key={i} style={styles.rationaleBullet}>
+          {"\u2022 "}
+          {line}
+        </Text>
+      ))}
+      {!usedPlaceholderNews && newsLines.length === 0 ? (
+        <Text style={styles.rationaleP}>
+          {t("market.adviceDetailsPlaceholderNews")}
+        </Text>
+      ) : null}
+      <Text style={styles.rationaleP}>
+        {tf("market.adviceDetailsWeather", {
+          temp: Math.round(weatherSnap.temperatureC * 10) / 10,
+          condition: cond,
+          rain: detail.rainfallMm,
+        })}
+      </Text>
+      <Text style={styles.rationaleP}>
+        {tf("market.adviceDetailsPattern", {
+          d1: formatSignedPercent(detail.priceChange1dPct),
+          d7: formatSignedPercent(detail.priceChange7dPct),
+        })}
+      </Text>
+      <Text style={styles.rationaleP}>
+        {tf("market.adviceDetailsScreenRule", { verdict: screenVerdictLabel })}
+      </Text>
+    </View>
+  );
+}
+
+function MlAdviceRow({
+  advice,
+  t,
+  onPress,
+}: {
+  advice: RiceMlAdvice;
+  t: (k: AppStringKey) => string;
+  onPress: () => void;
+}) {
+  const glyph = advice === "hold" ? "▲" : advice === "sell" ? "✕" : "—";
+  const titleKey =
+    advice === "hold"
+      ? "market.adviceHold"
+      : advice === "sell"
+        ? "market.adviceSell"
+        : "market.adviceNeutral";
+  const subKey =
+    advice === "hold"
+      ? "market.adviceHoldSub"
+      : advice === "sell"
+        ? "market.adviceSellSub"
+        : "market.adviceNeutralSub";
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.adviceRow,
+        advice === "hold" && styles.adviceRowHold,
+        advice === "sell" && styles.adviceRowSell,
+        advice === "neutral" && styles.adviceRowNeutral,
+        pressed && styles.adviceRowPressed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={t(titleKey)}
+      accessibilityHint={t("market.adviceDetailsToggle")}
+    >
+      <Text
+        style={[
+          styles.adviceGlyph,
+          advice === "hold" && styles.adviceGlyphHold,
+          advice === "sell" && styles.adviceGlyphSell,
+          advice === "neutral" && styles.adviceGlyphNeutral,
+        ]}
+      >
+        {glyph}
+      </Text>
+      <View style={styles.adviceTextWrap}>
+        <Text style={styles.adviceTitle}>{t(titleKey)}</Text>
+        <Text style={styles.adviceSub}>{t(subKey)}</Text>
+        <Text style={styles.adviceTapHint}>{t("market.adviceDetailsToggle")}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 export function MarketTab() {
   const { locale, t, tf } = useI18n();
-  const wl = locale === "my" ? "my" : "en";
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<MarketItem | null>(null);
-  const [news, setNews] = useState("");
+  const selected = useMemo(() => getPrimaryRiceMarketItem(), []);
+  const [newsAuto, setNewsAuto] = useState("");
+  const [newsLoading, setNewsLoading] = useState(true);
   const [weatherSnap, setWeatherSnap] = useState<CurrentWeatherSnapshot | null>(
     null
   );
-  const [weatherLabel, setWeatherLabel] = useState<string | null>(null);
-  const [weatherLoading, setWeatherLoading] = useState(false);
-  const [mlPct, setMlPct] = useState<number | null>(null);
+  const [mlDetail, setMlDetail] = useState<MlNextDayDetail | null>(null);
+  const [adviceDetailOpen, setAdviceDetailOpen] = useState(false);
   const [mlErr, setMlErr] = useState<string | null>(null);
   const [mlLoading, setMlLoading] = useState(false);
 
   const mlBase = getMlApiBaseUrl();
-
-  useEffect(() => {
-    setMlPct(null);
-    setMlErr(null);
-  }, [selected?.id]);
-
-  const filtered = useMemo(
-    () => searchRiceMarketItems(query).slice(0, 80),
-    [query]
-  );
+  const mlRunRef = useRef(0);
 
   const chartSeries = useMemo(
-    () => (selected ? riceMidSeriesForChart(selected) : []),
+    () => riceMidSeriesForChart(selected),
     [selected]
   );
 
-  const prediction =
-    selected &&
-    predictItemPrice(selected, {
-      newsText: news.trim() || undefined,
-      weatherCode: weatherSnap?.weatherCode,
-      temperatureC: weatherSnap?.temperatureC,
-    });
+  const prediction = predictItemPrice(selected, {
+    newsText: newsAuto.trim() || undefined,
+    weatherCode: weatherSnap?.weatherCode,
+    temperatureC: weatherSnap?.temperatureC,
+  });
 
-  async function loadYangonWeather() {
-    const y = MYANMAR_PLACES[0]!;
-    setWeatherLoading(true);
-    setWeatherLabel(null);
-    try {
-      const w = await fetchCurrentWeather(y.latitude, y.longitude);
-      setWeatherSnap(w);
-      const cond = weatherCodeLabelLocale(w.weatherCode, wl);
-      setWeatherLabel(`${y.label} (${cond}, ${w.temperatureC}°C)`);
-    } catch (e) {
-      setWeatherSnap(null);
-      setWeatherLabel(
-        e instanceof Error ? e.message : t("errors.weatherLoad")
-      );
-    } finally {
-      setWeatherLoading(false);
-    }
-  }
-
-  async function handleMyLocationWeather() {
-    setWeatherLoading(true);
-    setWeatherLabel(null);
-    try {
-      const loc = await resolveCoordsForWeather();
-      if (!loc.ok) {
-        setWeatherSnap(null);
-        if (loc.kind === "permission") {
-          setWeatherLabel(t("errors.geoDenied"));
-        } else if (loc.kind === "services") {
-          setWeatherLabel(t("errors.locationServicesOff"));
-        } else {
-          setWeatherLabel(t("weather.alertErrorBody"));
-        }
-        return;
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setNewsLoading(true);
+      try {
+        const text = await fetchRiceMarketNewsContext();
+        if (!cancelled) setNewsAuto(text);
+      } catch {
+        /* empty */
+      } finally {
+        if (!cancelled) setNewsLoading(false);
       }
-      const { latitude, longitude } = loc;
-      const w = await fetchCurrentWeather(latitude, longitude);
-      const near = findNearestPlace(latitude, longitude);
-      setWeatherSnap(w);
-      const cond = weatherCodeLabelLocale(w.weatherCode, wl);
-      setWeatherLabel(
-        `${t("weather.nearestListed")}: ${near.label} (${cond}, ${w.temperatureC}°C)`
-      );
-    } catch (e) {
-      setWeatherSnap(null);
-      setWeatherLabel(
-        e instanceof Error ? e.message : t("errors.weatherLoad")
-      );
-    } finally {
-      setWeatherLoading(false);
-    }
-  }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  async function fetchPythonMl() {
-    if (!selected) return;
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWeather() {
+      const applyYangon = async () => {
+        const y = MYANMAR_PLACES[0]!;
+        const w = await fetchCurrentWeather(y.latitude, y.longitude);
+        if (!cancelled) setWeatherSnap(w);
+      };
+      try {
+        const loc = await resolveCoordsForWeather();
+        if (!loc.ok) {
+          await applyYangon();
+          return;
+        }
+        const w = await fetchCurrentWeather(loc.latitude, loc.longitude);
+        if (!cancelled) setWeatherSnap(w);
+      } catch {
+        if (!cancelled) await applyYangon();
+      }
+    }
+    void loadWeather();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mlBase || !weatherSnap || newsLoading) return;
     const prices = recentMidPricesForMl(selected, 8);
     if (!prices) {
       setMlErr(t("market.mlBackendNeedHistory"));
       return;
     }
+    const runId = ++mlRunRef.current;
     setMlLoading(true);
     setMlErr(null);
-    try {
-      const pct = await fetchMlNextDayPct({
-        avgPrices: prices,
-        rainfallMm: 5,
-        tempC: weatherSnap?.temperatureC ?? 28,
-        newsHeadline: news.trim() || "No headline.",
+    setMlDetail(null);
+    setAdviceDetailOpen(false);
+    const headline = newsAuto.trim() || ML_HEADLINE_FALLBACK;
+    const momentum = midPriceMomentumPct(prices);
+    const rainMm = rainfallMmHintFromWeatherCode(weatherSnap.weatherCode);
+    fetchMlNextDayDetail({
+      avgPrices: prices,
+      rainfallMm: rainMm,
+      tempC: weatherSnap.temperatureC,
+      newsHeadline: headline.slice(0, 4000),
+      fallbackMomentum: momentum,
+    })
+      .then((d) => {
+        if (mlRunRef.current === runId) setMlDetail(d);
+      })
+      .catch((e) => {
+        if (mlRunRef.current === runId) {
+          setMlErr(
+            e instanceof Error ? e.message : t("errors.mlBackend")
+          );
+        }
+      })
+      .finally(() => {
+        if (mlRunRef.current === runId) setMlLoading(false);
       });
-      setMlPct(pct);
-    } catch (e) {
-      setMlErr(
-        e instanceof Error ? e.message : t("errors.mlBackend")
-      );
-    } finally {
-      setMlLoading(false);
-    }
-  }
+  }, [mlBase, selected, weatherSnap, newsAuto, newsLoading, t]);
+
+  const newsLines = useMemo(
+    () => riceNewsContextToLines(newsAuto, 8),
+    [newsAuto]
+  );
+  const usedPlaceholderNews = !newsAuto.trim();
+  const screenVerdictLabel = verdictLabelForLocale(
+    locale,
+    screenNewsVerdict(prediction?.factors.newsVerdict)
+  );
 
   return (
     <ScrollView
@@ -213,162 +364,83 @@ export function MarketTab() {
         <Text style={styles.pageTitle}>{t("market.title")}</Text>
       </View>
       <Text style={styles.hint}>
-        {tf("market.hint", {
-          count: RICE_MARKET_ITEMS.length,
-          generated: RICE_MARKET_SHEET_GENERATED_AT_ISO,
-        })}
+        {tf("market.hint", { generated: RICE_MARKET_SHEET_GENERATED_AT_ISO })}
       </Text>
+      <Text style={styles.hintTight}>{t("market.autoHint")}</Text>
       {RICE_MARKET_USES_SEED_DATA ? (
         <Text style={styles.riceSeedNote}>{t("market.riceSeedNote")}</Text>
       ) : null}
 
-      <TextInput
-        style={styles.search}
-        placeholder={t("market.searchPlaceholder")}
-        placeholderTextColor={theme.placeholder}
-        value={query}
-        onChangeText={setQuery}
-      />
+      <View style={styles.card}>
+        <Text style={styles.resultLabel}>{t("market.selected")}</Text>
+        <Text style={styles.detailTitle}>{selected.itemDetails}</Text>
+        <Text style={styles.meta}>
+          {[selected.group, selected.mainCategory, selected.itemCategory]
+            .filter(Boolean)
+            .join(" · ")}
+        </Text>
 
-      {filtered.map((it) => (
-        <Pressable
-          key={it.id}
-          style={[
-            styles.row,
-            selected?.id === it.id && styles.rowActive,
-          ]}
-          onPress={() => setSelected(it)}
-        >
-          <Text style={styles.rowTitle}>{it.itemDetails}</Text>
-          {latestMidpoint(it) != null && (
-            <Text style={styles.rowMeta}>~{formatMmks(latestMidpoint(it)!)}</Text>
-          )}
-        </Pressable>
-      ))}
+        <Text style={styles.resultLabel}>{t("market.chartTitle")}</Text>
+        <RicePriceMiniBars series={chartSeries} locale={locale} />
 
-      {selected && (
-        <View style={styles.card}>
-          <Text style={styles.resultLabel}>{t("market.selected")}</Text>
-          <Text style={styles.detailTitle}>{selected.itemDetails}</Text>
-          <Text style={styles.meta}>
-            {[selected.group, selected.mainCategory, selected.itemCategory]
-              .filter(Boolean)
-              .join(" · ")}
-          </Text>
+        {prediction ? (
+          <View style={styles.prediction}>
+            <Text style={styles.resultLabel}>
+              {t("market.forecastPriceTitle")}
+            </Text>
+            <Text style={styles.predMid}>
+              {formatMmks(prediction.predictedMid)} {t("common.mmk")}
+            </Text>
+            <Text style={styles.disclaimer}>
+              {t("market.predictionDisclaimer")}
+            </Text>
+          </View>
+        ) : null}
 
-          <Text style={styles.resultLabel}>{t("market.chartTitle")}</Text>
-          <RicePriceMiniBars series={chartSeries} locale={locale} />
-
-          <View style={styles.weatherRow}>
-            <Pressable
-              style={[styles.btnSec, weatherLoading && styles.btnDisabled]}
-              disabled={weatherLoading}
-              onPress={() => void loadYangonWeather()}
-            >
-              <View style={styles.btnSecInner}>
-                <Ionicons name="business-outline" size={20} color={theme.accent} />
-                <Text style={styles.btnSecText}>
-                  {weatherLoading
-                    ? t("market.loading")
-                    : t("market.yangonWeather")}
+        <View style={styles.mlBlock}>
+          <Text style={styles.resultLabel}>{t("market.adviceTitle")}</Text>
+          {mlBase ? (
+            <>
+              {mlLoading ? (
+                <Text style={styles.meta}>{t("market.mlBackendLoading")}</Text>
+              ) : null}
+              {mlErr ? <Text style={styles.mlErr}>{mlErr}</Text> : null}
+              {mlDetail != null && weatherSnap ? (
+                <>
+                  <MlAdviceRow
+                    advice={adviceFromMlNextDayPct(
+                      mlDetail.nextDayPctChange
+                    )}
+                    t={t}
+                    onPress={() =>
+                      setAdviceDetailOpen((open) => !open)
+                    }
+                  />
+                  {adviceDetailOpen ? (
+                    <MlAdviceRationaleMobile
+                      locale={locale}
+                      t={t}
+                      tf={tf}
+                      detail={mlDetail}
+                      newsLines={newsLines}
+                      weatherSnap={weatherSnap}
+                      screenVerdictLabel={screenVerdictLabel}
+                      usedPlaceholderNews={usedPlaceholderNews}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+              {mlDetail != null ? (
+                <Text style={styles.adviceDisclaimer}>
+                  {t("market.adviceDisclaimer")}
                 </Text>
-              </View>
-            </Pressable>
-            <Pressable
-              style={[styles.btnSec, weatherLoading && styles.btnDisabled]}
-              disabled={weatherLoading}
-              onPress={() => void handleMyLocationWeather()}
-            >
-              <View style={styles.btnSecInner}>
-                <Ionicons name="location-outline" size={20} color={theme.accent} />
-                <Text style={styles.btnSecText}>{t("market.myLocation")}</Text>
-              </View>
-            </Pressable>
-          </View>
-          {weatherLabel ? (
-            <Text style={styles.hintTight}>{weatherLabel}</Text>
-          ) : null}
-
-          <Text style={styles.hintTight}>{t("market.optionalNews")}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t("market.newsPlaceholder")}
-            placeholderTextColor={theme.placeholder}
-            multiline
-            value={news}
-            onChangeText={setNews}
-          />
-
-          {prediction ? (
-            <View style={styles.prediction}>
-              <Text style={styles.resultLabel}>{t("market.demoForecast")}</Text>
-              <Text style={styles.predMid}>
-                {formatMmks(prediction.predictedMid)} {t("common.mmk")}
-              </Text>
-              <Text style={styles.meta}>
-                {t("market.range")} {formatMmks(prediction.predictedLow)} –{" "}
-                {formatMmks(prediction.predictedHigh)} ·{" "}
-                {t("market.baselineMid")}{" "}
-                {formatMmks(prediction.baselineMid)} (
-                {prediction.baselineDateIso ?? "—"})
-              </Text>
-              <Text style={styles.factor}>
-                {t("market.factorTrend")} ×
-                {prediction.factors.trend.toFixed(4)}
-                {"\n"}
-                {t("market.factorNews")} ×
-                {prediction.factors.news.toFixed(4)} (
-                {verdictLabelForLocale(
-                  locale,
-                  prediction.factors.newsVerdict as Verdict
-                )}
-                )
-                {"\n"}
-                {t("market.factorWeather")} ×
-                {prediction.factors.weather.toFixed(4)} —{" "}
-                {prediction.factors.weatherNote}
-              </Text>
-              <Text style={styles.disclaimer}>
-                {t("market.predictionDisclaimer")}
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.mlBlock}>
-            <Text style={styles.resultLabel}>{t("market.mlBackendTitle")}</Text>
-            <Text style={styles.hintTight}>{t("market.mlBackendHint")}</Text>
-            {mlBase ? (
-              <>
-                <Pressable
-                  style={[styles.btnSec, mlLoading && styles.btnDisabled]}
-                  disabled={mlLoading}
-                  onPress={() => void fetchPythonMl()}
-                >
-                  <View style={styles.btnSecInner}>
-                    <Ionicons name="cloud-outline" size={20} color={theme.accent} />
-                    <Text style={styles.btnSecText}>
-                      {mlLoading
-                        ? t("market.mlBackendLoading")
-                        : t("market.mlBackendFetch")}
-                    </Text>
-                  </View>
-                </Pressable>
-                {mlErr ? (
-                  <Text style={styles.mlErr}>{mlErr}</Text>
-                ) : null}
-                {mlPct != null ? (
-                  <Text style={styles.meta}>
-                    {t("market.mlBackendResult")}:{" "}
-                    <Text style={styles.mlPct}>{mlPct.toFixed(3)}</Text>
-                  </Text>
-                ) : null}
-              </>
-            ) : (
-              <Text style={styles.hintTight}>{t("market.mlBackendNoUrl")}</Text>
-            )}
-          </View>
+              ) : null}
+            </>
+          ) : (
+            <Text style={styles.hintTight}>{t("market.mlBackendNoUrl")}</Text>
+          )}
         </View>
-      )}
+      </View>
     </ScrollView>
   );
 }
@@ -392,7 +464,13 @@ const styles = StyleSheet.create({
     color: theme.fgMuted,
     fontSize: 15,
     lineHeight: 22,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  hintTight: {
+    color: theme.fgMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 10,
   },
   riceSeedNote: {
     color: "rgba(200, 220, 205, 0.85)",
@@ -433,37 +511,8 @@ const styles = StyleSheet.create({
     color: "rgba(232, 244, 236, 0.92)",
     marginTop: 6,
   },
-  hintTight: {
-    color: theme.fgMuted,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  search: {
-    backgroundColor: theme.surface,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: theme.fg,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: theme.border,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border,
-  },
-  rowActive: { backgroundColor: theme.accentSoft },
-  rowTitle: { flex: 1, color: theme.fg, fontSize: 16, lineHeight: 22 },
-  rowMeta: { color: theme.price, fontSize: 15, fontWeight: "700" },
   card: {
-    marginTop: 16,
+    marginTop: 8,
     backgroundColor: theme.surface,
     borderRadius: 14,
     padding: 16,
@@ -477,6 +526,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 6,
+    marginTop: 4,
   },
   detailTitle: {
     fontSize: 17,
@@ -491,37 +541,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 20,
   },
-  weatherRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
-  btnSec: {
-    flex: 1,
-    backgroundColor: theme.accentSoft,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.accentBorder,
-  },
-  btnSecInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  btnSecText: { color: theme.accent, fontWeight: "700", fontSize: 14 },
-  btnDisabled: { opacity: 0.5 },
-  input: {
-    backgroundColor: theme.surfaceAlt,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    color: theme.fg,
-    minHeight: 100,
-    textAlignVertical: "top",
-    borderWidth: 1,
-    borderColor: theme.border,
-    marginBottom: 12,
-  },
   prediction: {
     marginTop: 8,
     paddingTop: 12,
@@ -534,15 +553,8 @@ const styles = StyleSheet.create({
     color: theme.price,
     marginBottom: 6,
   },
-  factor: {
-    color: theme.fg,
-    fontSize: 14,
-    lineHeight: 22,
-    marginTop: 8,
-    opacity: 0.92,
-  },
   disclaimer: {
-    marginTop: 12,
+    marginTop: 8,
     fontSize: 13,
     lineHeight: 18,
     color: theme.fgMuted,
@@ -558,5 +570,90 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
   },
-  mlPct: { fontWeight: "700", color: theme.price },
+  adviceRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginTop: 6,
+    marginBottom: 4,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  adviceRowHold: {
+    backgroundColor: "rgba(76, 175, 80, 0.15)",
+    borderColor: "rgba(76, 175, 80, 0.45)",
+  },
+  adviceRowSell: {
+    backgroundColor: "rgba(239, 83, 80, 0.15)",
+    borderColor: "rgba(239, 83, 80, 0.45)",
+  },
+  adviceRowNeutral: {
+    backgroundColor: "rgba(120, 140, 130, 0.12)",
+    borderColor: theme.border,
+  },
+  adviceGlyph: {
+    fontSize: 22,
+    fontWeight: "800",
+    lineHeight: 26,
+  },
+  adviceGlyphHold: { color: "#66bb6a" },
+  adviceGlyphSell: { color: "#ef5350" },
+  adviceGlyphNeutral: { color: "rgba(232, 244, 236, 0.5)" },
+  adviceTextWrap: { flex: 1, minWidth: 0 },
+  adviceTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.fg,
+  },
+  adviceSub: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+    color: theme.fgMuted,
+  },
+  adviceTapHint: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.accent,
+  },
+  adviceRowPressed: { opacity: 0.9 },
+  adviceRationale: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.06)",
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  rationaleP: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: theme.fgMuted,
+    marginBottom: 8,
+  },
+  rationaleLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: theme.fg,
+    marginBottom: 4,
+    marginTop: 4,
+  },
+  rationaleBullet: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: theme.fgMuted,
+    marginBottom: 4,
+    paddingLeft: 4,
+  },
+  adviceDisclaimer: {
+    marginTop: 8,
+    fontSize: 12,
+    lineHeight: 17,
+    color: theme.fgMuted,
+  },
 });

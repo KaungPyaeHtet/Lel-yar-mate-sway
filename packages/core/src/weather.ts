@@ -15,6 +15,18 @@ export type CurrentWeatherSnapshot = {
 };
 
 /** WMO Weather interpretation codes (WW) — simplified day labels. */
+/**
+ * Rough daily rainfall (mm) used with the rice XGBoost model when only the
+ * Open-Meteo WMO code is available (current conditions omit precipitation mm).
+ */
+export function rainfallMmHintFromWeatherCode(code: number): number {
+  if (code >= 61 && code <= 67) return 14;
+  if (code >= 80 && code <= 82) return 10;
+  if (code >= 95 && code <= 99) return 20;
+  if (code >= 51 && code <= 57) return 3;
+  return 0;
+}
+
 export function weatherCodeLabel(code: number): string {
   if (code === 0) return "Clear";
   if (code <= 3) return "Mainly clear / cloudy";

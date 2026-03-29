@@ -307,3 +307,56 @@ export async function loadAggregatedHeadlines(options?: {
   );
   return list.slice(0, maxTotal);
 }
+
+/** Feeds skewed to rice / Myanmar ag / policy — English + Burmese titles for the price model. */
+const RICE_MARKET_CONTEXT_SOURCE_IDS: readonly string[] = [
+  "google-ag-commodities",
+  "irrawaddy",
+  "bbc-burmese",
+];
+
+/**
+ * Short text blob for ClimateBERT / XGBoost news_headline: newest unique titles, capped.
+ */
+export async function fetchRiceMarketNewsContext(
+  maxTitles = 10,
+  maxChars = 4000
+): Promise<string> {
+  const sources = NEWS_FEED_SOURCES.filter((s) =>
+    RICE_MARKET_CONTEXT_SOURCE_IDS.includes(s.id)
+  );
+  const settled = await Promise.allSettled(
+    sources.map((s) => fetchHeadlinesFromSource(s, 6))
+  );
+  const rows: NewsHeadline[] = [];
+  for (const r of settled) {
+    if (r.status !== "fulfilled") continue;
+    rows.push(...r.value);
+  }
+  rows.sort((a, b) => b.pubDateMs - a.pubDateMs);
+  const seen = new Set<string>();
+  const uniq: string[] = [];
+  for (const h of rows) {
+    const t = h.title.replace(/\s+/g, " ").trim();
+    if (!t) continue;
+    const k = t.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    uniq.push(t);
+    if (uniq.length >= maxTitles) break;
+  }
+  const text = uniq.join(". ");
+  return text.length <= maxChars ? text : `${text.slice(0, maxChars - 1)}…`;
+}
+
+/**
+ * Split `fetchRiceMarketNewsContext` output (titles joined with ". ") into lines for UI.
+ */
+export function riceNewsContextToLines(text: string, maxLines = 8): string[] {
+  if (!text.trim()) return [];
+  return text
+    .split(". ")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, maxLines);
+}

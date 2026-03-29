@@ -39,6 +39,21 @@ export function latestMidpoint(item: MarketItem): number | null {
   return last ? mid(last) : null;
 }
 
+/** % change of latest mid vs previous day and vs 7 observations back (needs 8 prices). */
+export function midPriceMomentumPct(
+  pricesOldestToNewest: number[]
+): { change1dPct: number; change7dPct: number } | null {
+  const p = pricesOldestToNewest;
+  if (p.length < 8) return null;
+  const last = p[p.length - 1]!;
+  const p1 = p[p.length - 2]!;
+  const p7 = p[p.length - 8]!;
+  return {
+    change1dPct: (last / p1 - 1) * 100,
+    change7dPct: (last / p7 - 1) * 100,
+  };
+}
+
 /**
  * Last `count` usable mid-prices (from sheet observations), oldest → newest.
  * For Python ML API: need at least 8 points.

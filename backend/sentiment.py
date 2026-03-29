@@ -1,6 +1,10 @@
 """
 News → sentiment score using ClimateBERT `distilroberta-base-climate-f`.
 
+Hugging Face may print `roberta.embeddings.position_ids | UNEXPECTED`: the hub file
+still carries that buffer while current RoBERTa code does not load it; weights that
+matter are applied — safe to ignore.
+
 That checkpoint is a masked LM (not a classifier). We use mean-pooled embeddings
 and cosine similarity to bullish vs bearish rice-market anchor texts, then apply
 keyword-based weighting. Optional: set CLIMATE_USE_SENTIMENT_HEAD=1 to use
@@ -9,14 +13,30 @@ keyword-based weighting. Optional: set CLIMATE_USE_SENTIMENT_HEAD=1 to use
 
 from __future__ import annotations
 
+import backend.native_env  # noqa: F401 — before NumPy / torch native libs
+
 import os
 import re
+import threading
 from functools import lru_cache
 from typing import Iterable
 
 import numpy as np
 import torch
-from transformers import AutoModel, AutoTokenizer, AutoModelForSequenceClassification
+
+# Avoid OpenMP/thread clashes with XGBoost on macOS (PyTorch before xgb load_model segfaults).
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+
+from transformers import (
+    AutoModelForMaskedLM,
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+)
+from transformers.utils import logging as hf_logging
+
+# Quieter console; checkpoint may list UNEXPECTED keys (e.g. position_ids) — see docstring below.
+hf_logging.set_verbosity_error()
 
 CLIMATE_F_MODEL = "climatebert/distilroberta-base-climate-f"
 CLIMATE_SENTIMENT_MODEL = "climatebert/distilroberta-base-climate-sentiment"
@@ -50,6 +70,9 @@ _HIGH_IMPACT_POS = (
 )
 # "monsoon" amplifies whichever direction the base score already suggests
 _MONSOON = "monsoon"
+
+# Serialize torch forwards (OpenMP + multi-library macOS builds).
+_TORCH_GUARD = threading.Lock()
 
 
 def _clean_text(text: str) -> str:
@@ -94,7 +117,9 @@ def _cosine(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 @lru_cache(maxsize=1)
 def _climate_f_encoder():
     tok = AutoTokenizer.from_pretrained(CLIMATE_F_MODEL)
-    model = AutoModel.from_pretrained(CLIMATE_F_MODEL)
+    # Checkpoint is RobertaForMaskedLM; AutoModel → RobertaModel mismatches (missing pooler, stray lm_head).
+    mlm = AutoModelForMaskedLM.from_pretrained(CLIMATE_F_MODEL)
+    model = mlm.roberta
     model.eval()
     return tok, model
 
@@ -201,7 +226,8 @@ def get_rice_market_sentiment(headlines_list: list[str]) -> float:
     if not headlines_list:
         return 0.0
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    scores = [_one_headline_score(h, device) for h in headlines_list if str(h).strip()]
+    with _TORCH_GUARD:
+        scores = [_one_headline_score(h, device) for h in headlines_list if str(h).strip()]
     if not scores:
         return 0.0
     return float(np.mean(scores))

@@ -52,6 +52,29 @@ export type AppStringKey =
   | "market.mlBackendNoUrl"
   | "market.chartTitle"
   | "market.riceSeedNote"
+  | "market.autoHint"
+  | "market.pythonAutoNote"
+  | "market.forecastPriceTitle"
+  | "market.weatherFallback"
+  | "market.adviceTitle"
+  | "market.adviceHold"
+  | "market.adviceHoldSub"
+  | "market.adviceSell"
+  | "market.adviceSellSub"
+  | "market.adviceNeutral"
+  | "market.adviceNeutralSub"
+  | "market.adviceDisclaimer"
+  | "market.adviceDetailsToggle"
+  | "market.adviceDetailsModelMove"
+  | "market.adviceDetailsSignal"
+  | "market.adviceDetailsSignalNote"
+  | "market.adviceDetailsSentiment"
+  | "market.adviceDetailsSentimentHint"
+  | "market.adviceDetailsNewsLabel"
+  | "market.adviceDetailsWeather"
+  | "market.adviceDetailsPattern"
+  | "market.adviceDetailsScreenRule"
+  | "market.adviceDetailsPlaceholderNews"
   | "news.title"
   | "news.hint"
   | "news.refresh"
@@ -108,7 +131,7 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
       "ကျွန်ုပ်တို့သည် မြန်မာ စိုက်ပျိုးရှင်များ အတွက် Agriora အဖွဲ့ဖြစ်ပါသည်။\n\nစိုက်ပျိုးရှင်အများစုမှာ နေ့စဉ် စျေးကွက် သတင်းများ သို့မဟုတ် ကမ္ဘာ့ကုန်ဈေး သတင်းများကို မဖတ်ဖြစ်ကြပါ။ သို့သော် ထိုသတင်းများက ဈေးနှုန်း တက်ခြင်း သို့ ကျခြင်းနှင့် ဆက်နွယ်နေတတ်ပါသည်။\n\nAgriora သည် သတင်းများကို စုစည်းကာ ခန့်မှန်းချက်နှင့် ပေါင်းစပ်၍ ဈေးလမ်းကြောင်း ပြသပေးပါသည်။ သတင်းမဖတ်ဖြစ်သော်လည်း ဈေးအပြောင်းအလဲကို ကြိုတင်သိရှိပြီး ရောင်းဝယ်ချိန်ကို ပိုကောင်းအောင် စီစဉ်နိုင်စေရန်၊ စိုက်ပျိုးသူများ အကျိုးအမြတ် ရရှိရေး ကူညီပေးရန် ရည်ရွယ်ပါသည်။",
     "market.title": "စပါးဈေး ဈေးနှုန်းများ",
     "market.hint":
-      "စပါး/ဆန် ဈေးနှုန်းသာ ({count} မျိုး)။ ရက်စွဲအလိုက် အလယ်ဈေး ကြည့်ရန် အောက်ပါ ဂရပ်။ အခြေခံ data.xlsx ({generated})။",
+      "မှီငြမ်း စပါးဈေး တစ်မျိုးသာ။ အလယ်ဈေး မှတ်တမ်း ({generated})။",
     "market.searchPlaceholder": "စပါး အမျိုးအစား ရှာရန်…",
     "market.searchAria": "စပါး ရှာရန်",
     "market.itemsAria": "စပါး စာရင်း",
@@ -139,6 +162,43 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.chartTitle": "ယခင်ဈေးများ (အလယ်ဈေး)",
     "market.riceSeedNote":
       "data.xlsx တွင် စပါးစာကြောင်း မတွေ့သေးပါ — ပြသချက်အတွက် စပါးနမူနာ ဈေးတွဲကို သုံးထားသည်။ စပါးထည့်ပြီး script ပြန်တင်ပါ။",
+    "market.autoHint":
+      "သတင်းနှင့် ရာသီဥတုကို မျက်နှာပြင်တွင် မပြဘဲ နောက်ခံတွင် သုံးပါသည် — ခန့်မှန်းချက် နှင့် ML မော်ဒယ်အတွက်။",
+    "market.pythonAutoNote":
+      "သတင်း/ရာသီဥတု နောက်ခံမှ ထည့်သွင်းပြီး နောက်တစ်ရက် ဈေးပြောင်းနှုန်း (%) ကို ML ဆာဗာသို့ အလိုအလျောက် တောင်းပါသည်။",
+    "market.forecastPriceTitle": "ခန့်မှန်း ဈေးနှုန်း",
+    "market.weatherFallback":
+      "တည်နေရာ မရရှိပါ — ရန်ကုန် ရာသီဥတု သုံးထားသည်",
+    "market.adviceTitle": "နောက်တစ်ရက် လမ်းညွှန်",
+    "market.adviceHold": "ထားပါ (Hold)",
+    "market.adviceHoldSub": "မော်ဒယ်အရ ဈေး တက်နိုင်သည် — အရောင်းပိုင်း နှောင့်နှေးပါ။",
+    "market.adviceSell": "ရောင်းရှားပါ",
+    "market.adviceSellSub": "ဈေး ကျနိုင်သည် — ရောင်းချဖို့ စဉ်းစားပါ။",
+    "market.adviceNeutral": "စောင့်ကြည့်ပါ",
+    "market.adviceNeutralSub": "တက်ကျ ပြင်းထန်မှု မထင်ရှားပါ — ဆက်လက် စောင့်ကြည့်ပါ။",
+    "market.adviceDisclaimer":
+      "မော်ဒယ် အကြံပြုချက်သာ — ငွေရေးကြေးရေး အကြံဉာဏ် မဟုတ်ပါ။",
+    "market.adviceDetailsToggle": "ဘာကြောင့် ဒီလမ်းညွှန်လဲ (အသေးစိတ်)",
+    "market.adviceDetailsModelMove":
+      "XGBoost မော်ဒယ် ခန့်မှန်း နောက်တစ်ရက် ပြောင်းနှုန်း — {pct}",
+    "market.adviceDetailsSignal":
+      "အချက်ပြင်းအား (ပြည်စုံနိုင်ခြေ မဟုတ်ပါ) — လွန်ခဲ့သော ~{pct}%",
+    "market.adviceDetailsSignalNote":
+      "နောက်တစ်ရက် ဈေးကို အာမခံမရပါ။ အချက်ပြင်းအားသည် ခန့်မှန်းချက် အရွယ်အစားနှင့် သတင်း feature ကို အကြမ်းဖွဲ့ပေါင်းစပ်ထားသည်။",
+    "market.adviceDetailsSentiment":
+      "သတင်း sentiment feature (ClimateBERT မျဉ်းကြောင်း) — {score}",
+    "market.adviceDetailsSentimentHint":
+      "ဒီအမှတ်သည် မော်ဒယ်ထဲ သုံးသော ခေါင်းစဉ်များပေါ် မူတည်သည်။ အပေါ်/အောက် ဈေးလမ်းကြောင်းနှင့် ပေါင်းစပ်ပါသည်။",
+    "market.adviceDetailsNewsLabel":
+      "မော်ဒယ်သို့ ပို့ထားသော ခေါင်းစဉ်များ (နောက်ခံ သတင်း)",
+    "market.adviceDetailsWeather":
+      "ရာသီဥတု input — {temp}°C · {condition} · မိုးရေ {rain} mm",
+    "market.adviceDetailsPattern":
+      "မှတ်တမ်း အလယ်ဈေး — ယမန်နေ့နှင့် နှိုင်းစာရင် {d1}။ ၇ ကြိမ်အကြာကနှင့် {d7}။",
+    "market.adviceDetailsScreenRule":
+      "မျက်နှာပြင် ခန့်မှန်း (စည်းမျဉ်းမူဝါဒ သတင်းဖတ်) — {verdict}",
+    "market.adviceDetailsPlaceholderNews":
+      "တိုက်ရိုက် သတင်းခေါင်းစဉ် မရသေးပါ — ပုံမှန် စာကြောင်း သုံးထားသည်။",
     "news.title": "သတင်း",
     "news.hint":
       "စျေးကွက်နှင့် စိုက်ပျိုးရေးသတင်း ခေါင်းစဉ်များ။ အင်တာနက်ချိတ်ဆက်မှု လိုအပ်သည်။ ပြန်ဖတ်ခြင်းဖြင့် အသစ်ဆွဲယူပါ။",
@@ -199,7 +259,7 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
       "We are Team Agriora — a team building for Myanmar’s farmers.\n\nMany growers do not read market and commodity news every day. Those stories still carry signals about whether prices may rise or fall.\n\nAgriora gathers relevant headlines, combines them with price trends and weather, and shows a simple forecast direction. Our goal is to help farmers plan buying and selling even when they miss the news — so they can spot opportunities and improve returns.",
     "market.title": "Rice market prices",
     "market.hint":
-      "Rice / paddy items only ({count}). Chart shows midpoint over sheet dates. Source snapshot {generated}.",
+      "Single reference rice series. Mid-price history ({generated}).",
     "market.searchPlaceholder": "Search rice types…",
     "market.searchAria": "Search rice items",
     "market.itemsAria": "Rice items",
@@ -229,6 +289,45 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.chartTitle": "Past prices (midpoint)",
     "market.riceSeedNote":
       "No rice rows in data.xlsx yet — showing demo rice series on the same dates. Add rice rows and re-run xlsx_to_market.py.",
+    "market.autoHint":
+      "Headlines and weather are not shown here — they load in the background for the price estimate and ML model.",
+    "market.pythonAutoNote":
+      "Background news and weather are included when requesting the next-day change (%) from the ML server.",
+    "market.forecastPriceTitle": "Estimated price",
+    "market.weatherFallback":
+      "Location unavailable — using Yangon weather",
+    "market.adviceTitle": "Next-day guide",
+    "market.adviceHold": "Hold",
+    "market.adviceHoldSub":
+      "The model suggests prices may rise — waiting to sell could pay off.",
+    "market.adviceSell": "Consider selling",
+    "market.adviceSellSub":
+      "The model suggests prices may fall — selling soon may be safer.",
+    "market.adviceNeutral": "Wait and watch",
+    "market.adviceNeutralSub":
+      "No strong move expected — keep monitoring the market.",
+    "market.adviceDisclaimer":
+      "Model guidance only — not financial advice.",
+    "market.adviceDetailsToggle": "Why this recommendation? (details)",
+    "market.adviceDetailsModelMove":
+      "XGBoost next-day move estimate — {pct}",
+    "market.adviceDetailsSignal":
+      "Signal strength (not a true probability) — about {pct}%",
+    "market.adviceDetailsSignalNote":
+      "The model cannot guarantee tomorrow’s price. Strength blends how large the predicted move is with how strong the news feature is.",
+    "market.adviceDetailsSentiment":
+      "News sentiment feature (ClimateBERT-style) — {score}",
+    "market.adviceDetailsSentimentHint":
+      "This score comes from the same headlines fed to the model and is mixed with price patterns.",
+    "market.adviceDetailsNewsLabel": "Headlines sent to the model (background feed)",
+    "market.adviceDetailsWeather":
+      "Weather inputs — {temp}°C · {condition} · rainfall {rain} mm",
+    "market.adviceDetailsPattern":
+      "Recorded mid prices — vs previous day: {d1}; vs 7 observations back: {d7}.",
+    "market.adviceDetailsScreenRule":
+      "On-screen price estimate (rule-based news read) — {verdict}",
+    "market.adviceDetailsPlaceholderNews":
+      "Live headlines were not available — a default text line was used.",
     "news.title": "News",
     "news.hint":
       "Market and farming headlines from the internet. Refresh to load the latest.",

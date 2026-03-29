@@ -8,6 +8,7 @@ import {
   MARKET_ITEMS,
   MARKET_PERIODS_ISO,
 } from "./marketData.generated";
+import { recentMidPricesForMl } from "./market";
 import type { MarketItem, PriceObservation } from "./marketTypes";
 
 export { MARKET_GENERATED_AT_ISO as RICE_MARKET_SHEET_GENERATED_AT_ISO };
@@ -120,6 +121,17 @@ export function searchRiceMarketItems(query: string): MarketItem[] {
 
 export function getRiceMarketItemById(id: string): MarketItem | undefined {
   return RICE_MARKET_ITEMS.find((it) => it.id === id);
+}
+
+/**
+ * One rice series for the UI / ML path: prefer a row with ≥8 mid-prices for XGBoost,
+ * else the first rice item (demo seed or sheet).
+ */
+export function getPrimaryRiceMarketItem(): MarketItem {
+  for (const it of RICE_MARKET_ITEMS) {
+    if (recentMidPricesForMl(it, 8) != null) return it;
+  }
+  return RICE_MARKET_ITEMS[0]!;
 }
 
 /** Mid-price points for charts, oldest → newest. */

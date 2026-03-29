@@ -1,28 +1,119 @@
 import {
   MYANMAR_PLACES,
+  type AppLocale,
+  type AppStringKey,
   type CurrentWeatherSnapshot,
-  type MarketItem,
-  type Verdict,
+  type MlNextDayDetail,
+  adviceFromMlNextDayPct,
   fetchCurrentWeather,
-  fetchMlNextDayPct,
-  findNearestPlace,
+  fetchMlNextDayDetail,
+  fetchRiceMarketNewsContext,
+  formatSignedPercent,
   getMlApiBaseUrl,
-  latestMidpoint,
+  getPrimaryRiceMarketItem,
+  midPriceMomentumPct,
   predictItemPrice,
+  rainfallMmHintFromWeatherCode,
   recentMidPricesForMl,
   riceMidSeriesForChart,
-  RICE_MARKET_ITEMS,
+  riceNewsContextToLines,
   RICE_MARKET_SHEET_GENERATED_AT_ISO,
   RICE_MARKET_USES_SEED_DATA,
-  searchRiceMarketItems,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
 } from "@agriora/core";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BROWSER_GEO_OPTIONS, canUseBrowserGeolocation } from "./browserGeo";
-import { IconCity, IconLocationPin, IconMarket } from "./icons";
+import { IconMarket } from "./icons";
 import { useI18n } from "./LocaleContext";
 import { PriceHistoryChart } from "./PriceHistoryChart";
+
+const ML_HEADLINE_FALLBACK =
+  "Rice and commodity markets Myanmar Southeast Asia.";
+
+function formatSentimentScore(n: number): string {
+  if (Number.isNaN(n)) return "—";
+  return n >= 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
+}
+
+function screenNewsVerdict(
+  v: string | undefined
+): "up" | "down" | "flat" {
+  if (v === "up" || v === "down" || v === "flat") return v;
+  return "flat";
+}
+
+function MlAdviceRationale({
+  locale,
+  t,
+  tf,
+  detail,
+  newsLines,
+  weatherSnap,
+  screenVerdictLabel,
+  usedPlaceholderNews,
+}: {
+  locale: AppLocale;
+  t: (k: AppStringKey) => string;
+  tf: (k: AppStringKey, vars: Record<string, string | number>) => string;
+  detail: MlNextDayDetail;
+  newsLines: string[];
+  weatherSnap: CurrentWeatherSnapshot;
+  screenVerdictLabel: string;
+  usedPlaceholderNews: boolean;
+}) {
+  const confPct = Math.round(detail.confidenceHint * 100);
+  const cond = weatherCodeLabelLocale(weatherSnap.weatherCode, locale);
+
+  return (
+    <div className="ml-advice-rationale">
+      <p>
+        {tf("market.adviceDetailsModelMove", {
+          pct: formatSignedPercent(detail.nextDayPctChange),
+        })}
+      </p>
+      <p>
+        {tf("market.adviceDetailsSignal", { pct: confPct })}
+      </p>
+      <p>{t("market.adviceDetailsSignalNote")}</p>
+      <p>
+        {tf("market.adviceDetailsSentiment", {
+          score: formatSentimentScore(detail.sentimentScore),
+        })}
+      </p>
+      <p>{t("market.adviceDetailsSentimentHint")}</p>
+      <p className="ml-rationale-label">{t("market.adviceDetailsNewsLabel")}</p>
+      {usedPlaceholderNews ? (
+        <p>{t("market.adviceDetailsPlaceholderNews")}</p>
+      ) : null}
+      {newsLines.length > 0 ? (
+        <ul>
+          {newsLines.map((line, i) => (
+            <li key={i}>{line}</li>
+          ))}
+        </ul>
+      ) : usedPlaceholderNews ? null : (
+        <p>{t("market.adviceDetailsPlaceholderNews")}</p>
+      )}
+      <p>
+        {tf("market.adviceDetailsWeather", {
+          temp: Math.round(weatherSnap.temperatureC * 10) / 10,
+          condition: cond,
+          rain: detail.rainfallMm,
+        })}
+      </p>
+      <p>
+        {tf("market.adviceDetailsPattern", {
+          d1: formatSignedPercent(detail.priceChange1dPct),
+          d7: formatSignedPercent(detail.priceChange7dPct),
+        })}
+      </p>
+      <p>
+        {tf("market.adviceDetailsScreenRule", { verdict: screenVerdictLabel })}
+      </p>
+    </div>
+  );
+}
 
 function formatMmks(n: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
@@ -32,134 +123,129 @@ function formatMmks(n: number) {
 
 export function MarketPanel() {
   const { locale, t, tf } = useI18n();
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<MarketItem | null>(null);
-  const [news, setNews] = useState("");
+  const selected = useMemo(() => getPrimaryRiceMarketItem(), []);
+  const [newsAuto, setNewsAuto] = useState("");
+  const [newsLoading, setNewsLoading] = useState(true);
   const [weatherSnap, setWeatherSnap] = useState<CurrentWeatherSnapshot | null>(
     null
   );
-  const [weatherLabel, setWeatherLabel] = useState<string | null>(null);
-  const [weatherLoading, setWeatherLoading] = useState(false);
-  const [mlPct, setMlPct] = useState<number | null>(null);
+  const [mlDetail, setMlDetail] = useState<MlNextDayDetail | null>(null);
   const [mlErr, setMlErr] = useState<string | null>(null);
   const [mlLoading, setMlLoading] = useState(false);
 
   const mlBase = getMlApiBaseUrl();
-
-  const wl = locale === "my" ? "my" : "en";
-
-  useEffect(() => {
-    setMlPct(null);
-    setMlErr(null);
-  }, [selected?.id]);
-
-  const filtered = useMemo(
-    () => searchRiceMarketItems(query).slice(0, 80),
-    [query]
-  );
+  const mlRunRef = useRef(0);
 
   const chartSeries = useMemo(
-    () => (selected ? riceMidSeriesForChart(selected) : []),
+    () => riceMidSeriesForChart(selected),
     [selected]
   );
 
-  const prediction =
-    selected &&
-    predictItemPrice(selected, {
-      newsText: news.trim() || undefined,
-      weatherCode: weatherSnap?.weatherCode,
-      temperatureC: weatherSnap?.temperatureC,
-    });
+  const prediction = predictItemPrice(selected, {
+    newsText: newsAuto.trim() || undefined,
+    weatherCode: weatherSnap?.weatherCode,
+    temperatureC: weatherSnap?.temperatureC,
+  });
 
-  async function loadYangonWeather() {
-    const y = MYANMAR_PLACES[0]!;
-    setWeatherLoading(true);
-    setWeatherLabel(null);
-    try {
-      const w = await fetchCurrentWeather(y.latitude, y.longitude);
-      setWeatherSnap(w);
-      const cond = weatherCodeLabelLocale(w.weatherCode, wl);
-      setWeatherLabel(`${y.label} (${cond}, ${w.temperatureC}°C)`);
-    } catch (e) {
-      setWeatherSnap(null);
-      setWeatherLabel(
-        e instanceof Error ? e.message : t("errors.weatherLoad")
-      );
-    } finally {
-      setWeatherLoading(false);
-    }
-  }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setNewsLoading(true);
+      try {
+        const text = await fetchRiceMarketNewsContext();
+        if (!cancelled) setNewsAuto(text);
+      } catch {
+        /* keep empty; model still runs */
+      } finally {
+        if (!cancelled) setNewsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  function handleMyLocationWeather() {
-    if (!canUseBrowserGeolocation()) {
-      setWeatherLabel(
-        navigator.geolocation
-          ? t("errors.geoNeedHttps")
-          : t("errors.geoUnsupported")
-      );
-      return;
-    }
-    setWeatherLoading(true);
-    setWeatherLabel(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWeather() {
+      const applyYangon = async () => {
+        const y = MYANMAR_PLACES[0]!;
+        const w = await fetchCurrentWeather(y.latitude, y.longitude);
+        if (!cancelled) setWeatherSnap(w);
+      };
+      try {
+        if (canUseBrowserGeolocation() && navigator.geolocation) {
+          const pos = await new Promise<GeolocationPosition>(
+            (resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(
+                resolve,
+                reject,
+                BROWSER_GEO_OPTIONS
+              );
+            }
+          );
           const { latitude, longitude } = pos.coords;
           const w = await fetchCurrentWeather(latitude, longitude);
-          const near = findNearestPlace(latitude, longitude);
-          setWeatherSnap(w);
-          const cond = weatherCodeLabelLocale(w.weatherCode, wl);
-          setWeatherLabel(
-            `${t("weather.nearestListed")}: ${near.label} (${cond}, ${w.temperatureC}°C)`
-          );
-        } catch (e) {
-          setWeatherSnap(null);
-          setWeatherLabel(
-            e instanceof Error ? e.message : t("errors.weatherLoad")
-          );
-        } finally {
-          setWeatherLoading(false);
-        }
-      },
-      (err) => {
-        setWeatherLoading(false);
-        if (err.code === err.PERMISSION_DENIED) {
-          setWeatherLabel(t("errors.geoDenied"));
-        } else if (err.code === err.TIMEOUT) {
-          setWeatherLabel(t("errors.locationTimeout"));
+          if (!cancelled) setWeatherSnap(w);
         } else {
-          setWeatherLabel(err.message || t("errors.locationTimeout"));
+          await applyYangon();
         }
-      },
-      BROWSER_GEO_OPTIONS
-    );
-  }
+      } catch {
+        if (!cancelled) await applyYangon();
+      }
+    }
+    void loadWeather();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  async function fetchPythonMl() {
-    if (!selected) return;
+  useEffect(() => {
+    if (!mlBase || !weatherSnap || newsLoading) return;
     const prices = recentMidPricesForMl(selected, 8);
     if (!prices) {
       setMlErr(t("market.mlBackendNeedHistory"));
       return;
     }
+    const runId = ++mlRunRef.current;
     setMlLoading(true);
     setMlErr(null);
-    try {
-      const pct = await fetchMlNextDayPct({
-        avgPrices: prices,
-        rainfallMm: 5,
-        tempC: weatherSnap?.temperatureC ?? 28,
-        newsHeadline: news.trim() || "No headline.",
+    setMlDetail(null);
+    const headline =
+      newsAuto.trim() || ML_HEADLINE_FALLBACK;
+    const momentum = midPriceMomentumPct(prices);
+    const rainMm = rainfallMmHintFromWeatherCode(weatherSnap.weatherCode);
+    fetchMlNextDayDetail({
+      avgPrices: prices,
+      rainfallMm: rainMm,
+      tempC: weatherSnap.temperatureC,
+      newsHeadline: headline.slice(0, 4000),
+      fallbackMomentum: momentum,
+    })
+      .then((d) => {
+        if (mlRunRef.current === runId) setMlDetail(d);
+      })
+      .catch((e) => {
+        if (mlRunRef.current === runId) {
+          setMlErr(
+            e instanceof Error ? e.message : t("errors.mlBackend")
+          );
+        }
+      })
+      .finally(() => {
+        if (mlRunRef.current === runId) setMlLoading(false);
       });
-      setMlPct(pct);
-    } catch (e) {
-      setMlErr(
-        e instanceof Error ? e.message : t("errors.mlBackend")
-      );
-    } finally {
-      setMlLoading(false);
-    }
-  }
+  }, [mlBase, selected, weatherSnap, newsAuto, newsLoading, t]);
+
+  const newsLines = useMemo(
+    () => riceNewsContextToLines(newsAuto, 8),
+    [newsAuto]
+  );
+  const usedPlaceholderNews = !newsAuto.trim();
+  const screenVerdictLabel = verdictLabelForLocale(
+    locale,
+    screenNewsVerdict(prediction?.factors.newsVerdict)
+  );
 
   return (
     <div className="panel market-panel">
@@ -168,155 +254,104 @@ export function MarketPanel() {
         <h2 className="page-title">{t("market.title")}</h2>
       </div>
       <p className="hint">
-        {tf("market.hint", {
-          count: RICE_MARKET_ITEMS.length,
-          generated: RICE_MARKET_SHEET_GENERATED_AT_ISO,
-        })}
+        {tf("market.hint", { generated: RICE_MARKET_SHEET_GENERATED_AT_ISO })}
       </p>
+      <p className="hint tight">{t("market.autoHint")}</p>
       {RICE_MARKET_USES_SEED_DATA && (
         <p className="hint tight rice-seed-note">{t("market.riceSeedNote")}</p>
       )}
 
-      <input
-        type="search"
-        className="input-search"
-        placeholder={t("market.searchPlaceholder")}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        aria-label={t("market.searchAria")}
-      />
+      <div className="card market-detail">
+        <p className="result-label">{t("market.selected")}</p>
+        <p className="market-detail-title">{selected.itemDetails}</p>
+        <p className="meta market-breadcrumb">
+          {[selected.group, selected.mainCategory, selected.itemCategory]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
 
-      <ul className="market-list" role="listbox" aria-label={t("market.itemsAria")}>
-        {filtered.map((it) => (
-          <li key={it.id}>
-            <button
-              type="button"
-              className={
-                selected?.id === it.id ? "market-row active" : "market-row"
-              }
-              onClick={() => setSelected(it)}
-            >
-              <span className="market-row-title">{it.itemDetails}</span>
-              {latestMidpoint(it) != null && (
-                <span className="market-row-meta">
-                  ~{formatMmks(latestMidpoint(it)!)}
-                </span>
+        <p className="result-label">{t("market.chartTitle")}</p>
+        <PriceHistoryChart series={chartSeries} locale={locale} />
+
+        {prediction && (
+          <div className="prediction-block">
+            <p className="result-label">{t("market.forecastPriceTitle")}</p>
+            <p className="prediction-mid">
+              {formatMmks(prediction.predictedMid)} {t("common.mmk")}
+            </p>
+            <p className="disclaimer">{t("market.predictionDisclaimer")}</p>
+          </div>
+        )}
+
+        <div className="ml-backend-block">
+          <p className="result-label">{t("market.adviceTitle")}</p>
+          {mlBase ? (
+            <>
+              {mlLoading && (
+                <p className="meta">{t("market.mlBackendLoading")}</p>
               )}
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {selected && (
-        <div className="card market-detail">
-          <p className="result-label">{t("market.selected")}</p>
-          <p className="market-detail-title">{selected.itemDetails}</p>
-          <p className="meta market-breadcrumb">
-            {[selected.group, selected.mainCategory, selected.itemCategory]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-
-          <p className="result-label">{t("market.chartTitle")}</p>
-          <PriceHistoryChart series={chartSeries} locale={locale} />
-
-          <div className="weather-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={weatherLoading}
-              onClick={() => void loadYangonWeather()}
-            >
-              <IconCity className="chip-icon" aria-hidden />
-              {weatherLoading ? t("market.loading") : t("market.yangonWeather")}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={weatherLoading}
-              onClick={handleMyLocationWeather}
-            >
-              <IconLocationPin className="chip-icon" aria-hidden />
-              {t("market.myLocation")}
-            </button>
-          </div>
-          {weatherLabel && <p className="hint tight">{weatherLabel}</p>}
-
-          <p className="hint tight">{t("market.optionalNews")}</p>
-          <textarea
-            className="textarea"
-            rows={4}
-            placeholder={t("market.newsPlaceholder")}
-            value={news}
-            onChange={(e) => setNews(e.target.value)}
-          />
-
-          {prediction && (
-            <div className="prediction-block">
-              <p className="result-label">{t("market.demoForecast")}</p>
-              <p className="prediction-mid">
-                {formatMmks(prediction.predictedMid)} {t("common.mmk")}
-              </p>
-              <p className="meta">
-                {t("market.range")} {formatMmks(prediction.predictedLow)} –{" "}
-                {formatMmks(prediction.predictedHigh)} ·{" "}
-                {t("market.baselineMid")}{" "}
-                {formatMmks(prediction.baselineMid)} (
-                {prediction.baselineDateIso ?? "—"})
-              </p>
-              <ul className="factor-list">
-                <li>
-                  {t("market.factorTrend")} ×
-                  {prediction.factors.trend.toFixed(4)}
-                </li>
-                <li>
-                  {t("market.factorNews")} ×
-                  {prediction.factors.news.toFixed(4)} (
-                  {verdictLabelForLocale(
-                    locale,
-                    prediction.factors.newsVerdict as Verdict
-                  )}
-                  )
-                </li>
-                <li>
-                  {t("market.factorWeather")} ×
-                  {prediction.factors.weather.toFixed(4)} —{" "}
-                  {prediction.factors.weatherNote}
-                </li>
-              </ul>
-              <p className="disclaimer">{t("market.predictionDisclaimer")}</p>
-            </div>
+              {mlErr && <p className="weather-msg">{mlErr}</p>}
+              {mlDetail != null && weatherSnap ? (() => {
+                const advice = adviceFromMlNextDayPct(
+                  mlDetail.nextDayPctChange
+                );
+                const glyph =
+                  advice === "hold" ? "▲" : advice === "sell" ? "✕" : "—";
+                const titleKey =
+                  advice === "hold"
+                    ? "market.adviceHold"
+                    : advice === "sell"
+                      ? "market.adviceSell"
+                      : "market.adviceNeutral";
+                const subKey =
+                  advice === "hold"
+                    ? "market.adviceHoldSub"
+                    : advice === "sell"
+                      ? "market.adviceSellSub"
+                      : "market.adviceNeutralSub";
+                return (
+                  <details
+                    className={`ml-advice-details ml-advice--${advice}`}
+                  >
+                    <summary
+                      className={`ml-advice ml-advice--${advice}`}
+                      aria-label={t("market.adviceDetailsToggle")}
+                    >
+                      <span className="ml-advice__glyph" aria-hidden>
+                        {glyph}
+                      </span>
+                      <div className="ml-advice__text">
+                        <p className="ml-advice__title">{t(titleKey)}</p>
+                        <p className="ml-advice__sub">{t(subKey)}</p>
+                        <span className="ml-advice__hint">
+                          {t("market.adviceDetailsToggle")}
+                        </span>
+                      </div>
+                    </summary>
+                    <MlAdviceRationale
+                      locale={locale}
+                      t={t}
+                      tf={tf}
+                      detail={mlDetail}
+                      newsLines={newsLines}
+                      weatherSnap={weatherSnap}
+                      screenVerdictLabel={screenVerdictLabel}
+                      usedPlaceholderNews={usedPlaceholderNews}
+                    />
+                  </details>
+                );
+              })() : null}
+              {mlDetail != null && (
+                <p className="hint tight ml-advice-disclaimer">
+                  {t("market.adviceDisclaimer")}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="hint tight">{t("market.mlBackendNoUrl")}</p>
           )}
-
-          <div className="ml-backend-block">
-            <p className="result-label">{t("market.mlBackendTitle")}</p>
-            <p className="hint tight">{t("market.mlBackendHint")}</p>
-            {mlBase ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled={mlLoading}
-                  onClick={() => void fetchPythonMl()}
-                >
-                  {mlLoading
-                    ? t("market.mlBackendLoading")
-                    : t("market.mlBackendFetch")}
-                </button>
-                {mlErr && <p className="weather-msg">{mlErr}</p>}
-                {mlPct != null && (
-                  <p className="meta">
-                    {t("market.mlBackendResult")}:{" "}
-                    <strong>{mlPct.toFixed(3)}</strong>
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="hint tight">{t("market.mlBackendNoUrl")}</p>
-            )}
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

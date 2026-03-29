@@ -58,12 +58,64 @@ export async function fetchMlSentiment(headlines: string[]): Promise<number> {
   return j.score;
 }
 
-export async function fetchMlNextDayPct(p: {
+export type MlNextDayDetail = {
+  nextDayPctChange: number;
+  sentimentScore: number;
+  priceChange1dPct: number;
+  priceChange7dPct: number;
+  tempC: number;
+  rainfallMm: number;
+  confidenceHint: number;
+};
+
+type RawNextDayPredict = {
+  next_day_pct_change?: unknown;
+  sentiment_score?: unknown;
+  price_change_1d_pct?: unknown;
+  price_change_7d_pct?: unknown;
+  temp_c?: unknown;
+  rainfall_mm?: unknown;
+  confidence_hint?: unknown;
+};
+
+function parseNextDayPredict(
+  j: RawNextDayPredict,
+  fallbackMomentum?: { change1dPct: number; change7dPct: number }
+): MlNextDayDetail {
+  const y = j.next_day_pct_change;
+  if (typeof y !== "number" || Number.isNaN(y)) {
+    throw new Error("Invalid ML response: next_day_pct_change");
+  }
+  const num = (k: keyof RawNextDayPredict, fb: number) => {
+    const v = j[k];
+    return typeof v === "number" && !Number.isNaN(v) ? v : fb;
+  };
+  const d1 =
+    num("price_change_1d_pct", fallbackMomentum?.change1dPct ?? 0) ?? 0;
+  const d7 =
+    num("price_change_7d_pct", fallbackMomentum?.change7dPct ?? 0) ?? 0;
+  return {
+    nextDayPctChange: y,
+    sentimentScore: num("sentiment_score", 0),
+    priceChange1dPct: d1,
+    priceChange7dPct: d7,
+    tempC: num("temp_c", 0),
+    rainfallMm: num("rainfall_mm", 0),
+    confidenceHint: Math.min(
+      1,
+      Math.max(0, num("confidence_hint", 0.5))
+    ),
+  };
+}
+
+export async function fetchMlNextDayDetail(p: {
   avgPrices: number[];
   rainfallMm: number;
   tempC: number;
   newsHeadline: string;
-}): Promise<number> {
+  /** Used if the API returns a legacy body with only next_day_pct_change. */
+  fallbackMomentum?: { change1dPct: number; change7dPct: number } | null;
+}): Promise<MlNextDayDetail> {
   const base = getMlApiBaseUrl();
   if (!base) throw new Error("ML API URL not configured");
   const r = await fetch(`${base}/api/predict/next-day-pct`, {
@@ -77,6 +129,17 @@ export async function fetchMlNextDayPct(p: {
     }),
   });
   if (!r.ok) throw new Error(await r.text());
-  const j = (await r.json()) as { next_day_pct_change: number };
-  return j.next_day_pct_change;
+  const j = (await r.json()) as RawNextDayPredict;
+  return parseNextDayPredict(j, p.fallbackMomentum ?? undefined);
+}
+
+/** Returns only the regressor’s next-day % estimate (same endpoint as {@link fetchMlNextDayDetail}). */
+export async function fetchMlNextDayPct(p: {
+  avgPrices: number[];
+  rainfallMm: number;
+  tempC: number;
+  newsHeadline: string;
+}): Promise<number> {
+  const d = await fetchMlNextDayDetail({ ...p, fallbackMomentum: null });
+  return d.nextDayPctChange;
 }

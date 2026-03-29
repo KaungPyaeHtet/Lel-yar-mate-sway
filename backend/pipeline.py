@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Sequence
 
+import backend.native_env  # noqa: F401 — before NumPy (OpenMP)
+
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -23,6 +25,7 @@ __all__ = [
     "make_xgb_regressor",
     "supervised_feature_columns",
     "build_inference_feature_matrix",
+    "build_inference_features_and_meta",
 ]
 
 
@@ -40,30 +43,31 @@ def supervised_feature_columns(
     ]
 
 
-def build_inference_feature_matrix(
+def _headlines_cell(s: str) -> list[str]:
+    parts = [x.strip() for x in s.replace(";", ".").split(".") if x.strip()]
+    return parts if parts else ([s.strip()] if s.strip() else [])
+
+
+def build_inference_features_and_meta(
     avg_prices: Sequence[float],
     rainfall_mm: float,
     temp_c: float,
     news_headline: str,
     rainfall_col: str = "rainfall_mm",
     temp_col: str = "temp_c",
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, dict[str, float | int]]:
     """
-    One row matching training features for “today” (last price = avg_prices[-1]).
-    Requires ≥8 daily prices (oldest → newest). TimesFM block uses prices[:-1].
+    Feature row for inference plus human-readable meta (lags %, sentiment, counts).
     """
     p = np.asarray(avg_prices, dtype=np.float64).ravel()
     if p.size < 8:
         raise ValueError("avg_prices must contain at least 8 values")
 
-    def headlines_cell(s: str) -> list[str]:
-        parts = [x.strip() for x in s.replace(";", ".").split(".") if x.strip()]
-        return parts if parts else ([s.strip()] if s.strip() else [])
-
+    hl = _headlines_cell(str(news_headline))
     ext = TimesFMFeatureExtractor()
     ts = ext.transform(p[:-1])
     pt, p1, p7 = float(p[-1]), float(p[-2]), float(p[-8])
-    sent = float(get_rice_market_sentiment(headlines_cell(str(news_headline))))
+    sent = float(get_rice_market_sentiment(hl))
 
     row = {
         "price_lag1_rel": pt / p1 - 1.0,
@@ -76,7 +80,39 @@ def build_inference_feature_matrix(
         row[name] = float(val)
 
     cols = supervised_feature_columns(rainfall_col, temp_col)
-    return pd.DataFrame([row], columns=cols)
+    df = pd.DataFrame([row], columns=cols)
+    meta: dict[str, float | int] = {
+        "sentiment_score": sent,
+        "price_change_1d_pct": (pt / p1 - 1.0) * 100.0,
+        "price_change_7d_pct": (pt / p7 - 1.0) * 100.0,
+        "temp_c": float(temp_c),
+        "rainfall_mm": float(rainfall_mm),
+        "news_snippet_count": len(hl),
+    }
+    return df, meta
+
+
+def build_inference_feature_matrix(
+    avg_prices: Sequence[float],
+    rainfall_mm: float,
+    temp_c: float,
+    news_headline: str,
+    rainfall_col: str = "rainfall_mm",
+    temp_col: str = "temp_c",
+) -> pd.DataFrame:
+    """
+    One row matching training features for “today” (last price = avg_prices[-1]).
+    Requires ≥8 daily prices (oldest → newest). TimesFM block uses prices[:-1].
+    """
+    df, _ = build_inference_features_and_meta(
+        avg_prices,
+        rainfall_mm,
+        temp_c,
+        news_headline,
+        rainfall_col,
+        temp_col,
+    )
+    return df
 
 
 def build_supervised_frame(

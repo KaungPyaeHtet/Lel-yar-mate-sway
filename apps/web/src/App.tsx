@@ -30,11 +30,9 @@ function AppShell() {
   const homeTag = t("home.tag");
   const homePill = t("home.pill");
 
-  const tabs: { id: Tab; labelKey: AppStringKey }[] = [
+  const tabbarTabs: { id: Tab; labelKey: AppStringKey }[] = [
     { id: "home", labelKey: "tab.home" },
     { id: "market", labelKey: "tab.market" },
-    { id: "weather", labelKey: "tab.weather" },
-    { id: "news", labelKey: "tab.news" },
     { id: "settings", labelKey: "tab.settings" },
   ];
 
@@ -55,6 +53,24 @@ function AppShell() {
             </h1>
             {homeTag ? <p className="tag">{homeTag}</p> : null}
             {homePill ? <span className="pill">{homePill}</span> : null}
+            <div className="home-quick-actions">
+              <button
+                type="button"
+                className="home-quick-btn"
+                onClick={() => setTab("news")}
+              >
+                <IconNews className="home-quick-icon" aria-hidden />
+                <span className="home-quick-label">{t("tab.news")}</span>
+              </button>
+              <button
+                type="button"
+                className="home-quick-btn"
+                onClick={() => setTab("weather")}
+              >
+                <IconWeather className="home-quick-icon" aria-hidden />
+                <span className="home-quick-label">{t("tab.weather")}</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -70,7 +86,7 @@ function AppShell() {
       </main>
 
       <nav className="tabbar" aria-label={t("nav.mainAria")}>
-        {tabs.map(({ id, labelKey }) => {
+        {tabbarTabs.map(({ id, labelKey }) => {
           const Icon = tabIcons[id];
           const active = tab === id;
           return (

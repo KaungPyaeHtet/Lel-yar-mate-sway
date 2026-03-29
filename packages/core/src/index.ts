@@ -17,6 +17,7 @@ export {
   buildOpenMeteoCurrentUrl,
   fetchCurrentWeather,
   parseOpenMeteoCurrent,
+  rainfallMmHintFromWeatherCode,
   weatherCodeLabel,
   weatherCodeLabelLocale,
   type CurrentWeatherSnapshot,
@@ -39,6 +40,8 @@ export {
   configureNewsRssFetch,
   fetchHeadlinesFromSource,
   loadAggregatedHeadlines,
+  fetchRiceMarketNewsContext,
+  riceNewsContextToLines,
   parseRssXml,
   type NewsFeedScope,
   type NewsFeedSource,
@@ -50,6 +53,7 @@ export {
   getMarketItemById,
   latestMidpoint,
   latestObservation,
+  midPriceMomentumPct,
   predictItemPrice,
   recentMidPricesForMl,
   searchMarketItems,
@@ -64,16 +68,25 @@ export {
 } from "./market";
 
 export {
+  fetchMlNextDayDetail,
   fetchMlNextDayPct,
   fetchMlSentiment,
   getMlApiBaseUrl,
+  type MlNextDayDetail,
 } from "./mlApi";
+
+export {
+  adviceFromMlNextDayPct,
+  formatSignedPercent,
+  type RiceMlAdvice,
+} from "./mlAdvice";
 
 export {
   RICE_MARKET_ITEMS,
   RICE_MARKET_SHEET_GENERATED_AT_ISO,
   RICE_MARKET_USES_SEED_DATA,
   getRiceMarketItemById,
+  getPrimaryRiceMarketItem,
   isRiceMarketItemFromSheet,
   riceMidSeriesForChart,
   searchRiceMarketItems,
