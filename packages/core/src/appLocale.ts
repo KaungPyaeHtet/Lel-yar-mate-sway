@@ -18,6 +18,14 @@ export type AppStringKey =
   | "tab.news"
   | "tab.settings"
   | "home.pill"
+  | "home.farmShowcaseAria"
+  | "home.farmControlsAria"
+  | "home.farmPickPhoto"
+  | "home.farmCredits"
+  | "home.farmSlide1"
+  | "home.farmSlide2"
+  | "home.farmSlide3"
+  | "home.farmSlide4"
   | "settings.title"
   | "settings.languageTitle"
   | "settings.languageMy"
@@ -115,6 +123,20 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "tab.news": "သတင်း",
     "tab.settings": "ချိန်ညှိမှု",
     "home.pill": "",
+    "home.farmShowcaseAria":
+      "မြန်မာ နှင့် ဒေသတွင်း လယ်ယာနှင့် စိုက်ပျိုးရေးဓာတ်ပုံများ",
+    "home.farmControlsAria": "ဓာတ်ပုံ ပြောင်းရန်",
+    "home.farmPickPhoto": "ဓာတ်ပုံ {n}",
+    "home.farmCredits":
+      "ဓာတ်ပုံများ — Unsplash (အခမဲ့ သုံးစွဲနိုင်သည်)။ ဓာတ်ပုံပိုင်ရှင်အမည်များ ATTRIBUTIONS.txt တွင် ရေးထားသည်။",
+    "home.farmSlide1":
+      "စိမ်းလန်းသော စပါးခင်းတွင် စပါးစိုက်ပျိုးမှု — ဒေသတွင်း လယ်သမားများနဲ့ ဆင်တူသော လုပ်ငန်းများ",
+    "home.farmSlide2":
+      "ကျယ်ပြန့်သော စပါးခင်းများ — အောက်မြစ်ဝှမ်း ဒေသများ၏ လယ်ယာရှုခင်း",
+    "home.farmSlide3":
+      "တောင်စောင်းလက်ဖက်ခြံတွင် လက်ဖက်ရိတ်သိမ်းမှု",
+    "home.farmSlide4":
+      "အင်းလေးကန်၊ မြန်မာနိုင်ငံ — ရေပေါ်ကျေးရွာနှင့် လယ်ယာများ",
     "settings.title": "ချိန်ညှိမှု",
     "settings.languageTitle": "ဘာသာစကား",
     "settings.languageMy": "မြန်မာ",
@@ -233,6 +255,20 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "tab.news": "News",
     "tab.settings": "Settings",
     "home.pill": "Offline-first rules",
+    "home.farmShowcaseAria":
+      "Photos of farms and countryside in Myanmar and our region",
+    "home.farmControlsAria": "Choose a photo",
+    "home.farmPickPhoto": "Photo {n}",
+    "home.farmCredits":
+      "Photos from Unsplash (free to use). Photographer names are listed in ATTRIBUTIONS.txt.",
+    "home.farmSlide1":
+      "Planting rice in lush green paddies — work that looks like farms across our region",
+    "home.farmSlide2":
+      "Wide rice plains — countryside in the lower Mekong region",
+    "home.farmSlide3":
+      "Picking tea on hillside plantations",
+    "home.farmSlide4":
+      "Inle Lake, Myanmar — stilt villages and water farms",
     "settings.title": "Settings",
     "settings.languageTitle": "Language",
     "settings.languageMy": "Burmese",

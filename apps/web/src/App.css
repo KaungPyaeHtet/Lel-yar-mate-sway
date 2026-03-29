@@ -1,3 +1,47 @@
+@keyframes agriora-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes agriora-hero-logo {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes agriora-pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes agriora-quick-actions-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 :root {
   --color-bg: #eef2e8;
   --color-surface: #ffffff;
@@ -43,6 +87,10 @@ html.locale-my .app {
   width: 100%;
 }
 
+.main-panel {
+  animation: agriora-panel-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .hero {
   display: flex;
   flex-direction: column;
@@ -50,6 +98,106 @@ html.locale-my .app {
   justify-content: center;
   min-height: 55vh;
   text-align: center;
+}
+
+.farm-showcase {
+  width: 100%;
+  max-width: 22rem;
+  margin: 0 auto 1.35rem;
+}
+
+.farm-showcase__viewport {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-surface-alt);
+  box-shadow:
+    0 4px 18px rgba(27, 35, 25, 0.12),
+    0 0 0 1px var(--color-border);
+}
+
+.farm-showcase__slide {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.95s ease-in-out;
+  pointer-events: none;
+}
+
+.farm-showcase__slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.farm-showcase__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.farm-showcase__cap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.55rem 0.7rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: left;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  background: linear-gradient(
+    transparent,
+    rgba(15, 22, 18, 0.55) 35%,
+    rgba(15, 22, 18, 0.82)
+  );
+}
+
+.farm-showcase__controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.farm-showcase__dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(61, 82, 64, 0.35);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.farm-showcase__dot:hover {
+  background: rgba(27, 107, 54, 0.55);
+  transform: scale(1.15);
+}
+
+.farm-showcase__dot.is-active {
+  background: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+  transform: scale(1.2);
+}
+
+.farm-showcase__credits {
+  margin: 0.5rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--color-muted);
+  text-align: center;
+  max-width: 22rem;
 }
 
 .logo-mark {
@@ -66,6 +214,10 @@ html.locale-my .app {
   object-fit: contain;
 }
 
+.hero .logo-img {
+  animation: agriora-hero-logo 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+
 .pill {
   margin-top: 1.25rem;
   padding: 0.45rem 1rem;
@@ -79,6 +231,10 @@ html.locale-my .app {
   border-radius: 999px;
 }
 
+.hero .pill {
+  animation: agriora-pill-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
 .home-quick-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -86,6 +242,7 @@ html.locale-my .app {
   margin-top: 1.75rem;
   width: 100%;
   max-width: 22rem;
+  animation: agriora-quick-actions-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
 }
 
 .home-quick-btn {
@@ -202,10 +359,17 @@ html.locale-my .app {
   justify-content: center;
   gap: 0.5rem;
   min-height: 3rem;
+  transition:
+    filter 0.15s ease,
+    transform 0.12s ease;
 }
 
 .btn:hover {
   filter: brightness(1.06);
+}
+
+.btn:active {
+  transform: scale(0.99);
 }
 
 .card {
@@ -317,6 +481,19 @@ html.locale-my .app {
   letter-spacing: 0.02em;
   color: var(--color-muted);
   cursor: pointer;
+  border-radius: 12px;
+  transition:
+    color 0.22s ease,
+    transform 0.14s ease,
+    background-color 0.22s ease;
+}
+
+.tab:hover {
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+.tab:active {
+  transform: scale(0.97);
 }
 
 .tab.active {
@@ -933,4 +1110,40 @@ html.locale-my .app {
 
 .about-body-my {
   white-space: pre-wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-panel,
+  .hero .logo-img,
+  .hero .pill,
+  .home-quick-actions {
+    animation: none !important;
+  }
+
+  .farm-showcase__slide {
+    transition: none;
+  }
+
+  .farm-showcase__dot {
+    transition: none;
+  }
+
+  .farm-showcase__dot:hover,
+  .farm-showcase__dot.is-active {
+    transform: none;
+  }
+
+  .home-quick-btn,
+  .btn,
+  .tab,
+  .chip,
+  .market-row,
+  .lang-btn {
+    transition: none !important;
+  }
+
+  .btn:active,
+  .tab:active {
+    transform: none;
+  }
 }
