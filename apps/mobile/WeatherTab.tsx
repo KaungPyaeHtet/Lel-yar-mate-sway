@@ -122,7 +122,6 @@ export function WeatherTab({ isActive }: { isActive: boolean }) {
         <Ionicons name="partly-sunny-outline" size={28} color={theme.accent} />
         <Text style={styles.pageTitle}>{t("weather.title")}</Text>
       </View>
-      <Text style={styles.hint}>{t("weather.hintMobile")}</Text>
 
       <Pressable
         style={[styles.btn, locLoading && styles.btnDisabled]}
@@ -221,12 +220,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.fg,
     flex: 1,
-  },
-  hint: {
-    color: theme.fgMuted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 12,
   },
   btn: {
     backgroundColor: theme.accent,

@@ -30,7 +30,7 @@ npm run build:core
 npm run web
 ```
 
-Open the URL Vite prints (usually **http://localhost:5173**). Use the **Market** tab to browse prices from `data.xlsx` and run a **demo** forecast (news + optional weather). The **News** tab loads **BBC မြန်မာ**, **Google News** (Myanmar / commodities / SE Asia), and **Mizzima** over the network (with an **rss2json** fallback when feeds block the browser — third-party, demo only). Use the **Weather** tab for regional forecasts; **Use my location** needs HTTPS (or localhost) and browser permission.
+Open the URL Vite prints (usually **http://localhost:5173**). Use the **Market** tab to browse prices from `data.xlsx` and run a **demo** forecast (news + optional weather). The **News** tab loads headlines over the network (sources and RSS fallbacks are configured in `@agriora/core`). Use the **Weather** tab for regional forecasts; **Use my location** needs HTTPS (or localhost) and browser permission.
 
 ### Mobile (Expo / React Native)
 
@@ -79,7 +79,9 @@ npx expo start --clear
 
 ## Updating market data (`data.xlsx`)
 
-After you change the root **`data.xlsx`**, regenerate the bundled snapshot and rebuild core:
+After you change the root **`data.xlsx`**, regenerate the bundled snapshot and rebuild core.
+
+**macOS / Linux:**
 
 ```bash
 python3 -m venv .venv
@@ -87,6 +89,17 @@ python3 -m venv .venv
 .venv/bin/python scripts/xlsx_to_market.py
 npm run build:core
 ```
+
+**Windows (PowerShell or Command Prompt):**
+
+```powershell
+py -3 -m venv .venv
+.venv\Scripts\pip install -r requirements-market.txt
+.venv\Scripts\python scripts\xlsx_to_market.py
+npm run build:core
+```
+
+If `py` is not available, use `python` or `python3` instead of `py -3`, depending on how Python is installed.
 
 The script writes **`packages/core/src/marketData.generated.ts`** (committed so `npm install` works without Python). Forecasts in the app are **illustrative** (trend + keyword news + simple weather modifiers), not trading or policy advice.
 

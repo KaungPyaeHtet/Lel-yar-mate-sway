@@ -112,18 +112,6 @@ export function WeatherPanel({ isActive }: { isActive: boolean }) {
         <IconWeather className="panel-icon" aria-hidden />
         <h2 className="page-title">{t("weather.title")}</h2>
       </div>
-      <p className="hint">
-        {t("weather.hintWeb")}{" "}
-        <a
-          href="https://open-meteo.com/"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-link"
-        >
-          {t("weather.openMeteo")}
-        </a>
-        .
-      </p>
 
       <button
         type="button"

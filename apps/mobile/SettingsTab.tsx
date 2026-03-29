@@ -63,7 +63,6 @@ export function SettingsTab() {
             </View>
           </Pressable>
         </View>
-        <Text style={styles.note}>{t("settings.languageNote")}</Text>
       </View>
 
       <View style={styles.subheadingRow}>
@@ -142,11 +141,5 @@ const styles = StyleSheet.create({
   langBtnInner: { flexDirection: "row", alignItems: "center", gap: 8 },
   langBtnText: { fontSize: 16, fontWeight: "700", color: theme.fg },
   langBtnTextActive: { color: theme.onAccent },
-  note: {
-    marginTop: 12,
-    fontSize: 14,
-    lineHeight: 20,
-    color: theme.fgMuted,
-  },
   body: { color: theme.fgMuted, fontSize: 16, lineHeight: 24 },
 });

@@ -10,8 +10,6 @@ import {
   searchMarketItems,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
-  MARKET_GENERATED_AT_ISO,
-  MARKET_ITEMS,
 } from "@agriora/core";
 import { useMemo, useState } from "react";
 import { BROWSER_GEO_OPTIONS, canUseBrowserGeolocation } from "./browserGeo";
@@ -25,7 +23,7 @@ function formatMmks(n: number) {
 }
 
 export function MarketPanel() {
-  const { locale, t, tf } = useI18n();
+  const { locale, t } = useI18n();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<MarketItem | null>(null);
   const [news, setNews] = useState("");
@@ -114,18 +112,15 @@ export function MarketPanel() {
     );
   }
 
+  const marketHint = t("market.hint");
+
   return (
     <div className="panel market-panel">
       <div className="page-title-row">
         <IconMarket className="panel-icon" aria-hidden />
         <h2 className="page-title">{t("market.title")}</h2>
       </div>
-      <p className="hint">
-        {tf("market.hint", {
-          count: MARKET_ITEMS.length,
-          generated: MARKET_GENERATED_AT_ISO,
-        })}
-      </p>
+      {marketHint.trim() ? <p className="hint">{marketHint}</p> : null}
 
       <input
         type="search"

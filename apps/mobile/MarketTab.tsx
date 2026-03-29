@@ -10,8 +10,6 @@ import {
   searchMarketItems,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
-  MARKET_GENERATED_AT_ISO,
-  MARKET_ITEMS,
 } from "@agriora/core";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
@@ -34,7 +32,7 @@ function formatMmks(n: number) {
 }
 
 export function MarketTab() {
-  const { locale, t, tf } = useI18n();
+  const { locale, t } = useI18n();
   const wl = locale === "my" ? "my" : "en";
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<MarketItem | null>(null);
@@ -111,6 +109,8 @@ export function MarketTab() {
     }
   }
 
+  const marketHint = t("market.hint");
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -121,12 +121,9 @@ export function MarketTab() {
         <Ionicons name="storefront-outline" size={28} color={theme.accent} />
         <Text style={styles.pageTitle}>{t("market.title")}</Text>
       </View>
-      <Text style={styles.hint}>
-        {tf("market.hint", {
-          count: MARKET_ITEMS.length,
-          generated: MARKET_GENERATED_AT_ISO,
-        })}
-      </Text>
+      {marketHint.trim() ? (
+        <Text style={styles.hint}>{marketHint}</Text>
+      ) : null}
 
       <TextInput
         style={styles.search}

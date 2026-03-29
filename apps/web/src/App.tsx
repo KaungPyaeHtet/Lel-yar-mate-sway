@@ -6,7 +6,6 @@ import {
   IconMarket,
   IconNews,
   IconSettings,
-  IconSprout,
   IconWeather,
 } from "./icons";
 import { LocaleProvider, useI18n } from "./LocaleContext";
@@ -44,8 +43,16 @@ function AppShell() {
       <main className="main">
         {tab === "home" && (
           <div className="hero">
-            <IconSprout className="hero-sprout" aria-hidden />
-            <h1 className="logo">Agriora</h1>
+            <h1 className="logo-mark">
+              <img
+                className="logo-img"
+                src="/agriora-logo.png"
+                alt="Agriora"
+                width={512}
+                height={512}
+                decoding="async"
+              />
+            </h1>
             {homeTag ? <p className="tag">{homeTag}</p> : null}
             {homePill ? <span className="pill">{homePill}</span> : null}
           </div>

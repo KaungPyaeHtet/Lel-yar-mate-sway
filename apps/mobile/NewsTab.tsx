@@ -1,10 +1,7 @@
 import {
-  analyzeWithRules,
   loadAggregatedHeadlines,
-  verdictLabelForLocale,
   type NewsFilter,
   type NewsHeadline,
-  type Verdict,
 } from "@agriora/core";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback, useEffect, useState, type ComponentProps } from "react";
@@ -14,7 +11,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useI18n } from "./LocaleContext";
@@ -36,15 +32,11 @@ function formatWhen(ms: number, locale: "my" | "en") {
 }
 
 export function NewsTab({ isActive }: { isActive: boolean }) {
-  const { locale, t, tf } = useI18n();
+  const { locale, t } = useI18n();
   const [filter, setFilter] = useState<NewsFilter>("all");
   const [headlines, setHeadlines] = useState<NewsHeadline[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [paragraph, setParagraph] = useState("");
-  const [result, setResult] = useState<ReturnType<
-    typeof analyzeWithRules
-  > | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -142,71 +134,8 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
               ? ` · ${formatWhen(h.pubDateMs, locale === "my" ? "my" : "en")}`
               : ""}
           </Text>
-          <Pressable
-            onPress={() =>
-              setParagraph((p) =>
-                p.trim() ? `${p.trim()}\n\n${h.title}` : h.title
-              )
-            }
-          >
-            <Text style={styles.useLink}>{t("news.addToHint")}</Text>
-          </Pressable>
         </View>
       ))}
-
-      <Text style={styles.subheading}>{t("news.subheading")}</Text>
-      <Text style={styles.hint}>{t("news.hintPaste")}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t("news.placeholder")}
-        placeholderTextColor={theme.placeholder}
-        multiline
-        value={paragraph}
-        onChangeText={setParagraph}
-      />
-      <Pressable
-        style={styles.btn}
-        onPress={() => setResult(analyzeWithRules(paragraph))}
-      >
-        <View style={styles.btnInner}>
-          <Ionicons name="analytics-outline" size={22} color={theme.onAccent} />
-          <Text style={styles.btnText}>{t("news.estimate")}</Text>
-        </View>
-      </Pressable>
-
-      {result && result.rows.length > 0 && (
-        <View style={styles.card}>
-          <Text style={styles.resultLabel}>{t("news.resultLabel")}</Text>
-          <Text
-            style={[
-              styles.resultMain,
-              result.verdict === "up" && styles.up,
-              result.verdict === "down" && styles.down,
-            ]}
-          >
-            {verdictLabelForLocale(locale, result.verdict as Verdict)}
-          </Text>
-          <Text style={styles.meta}>
-            {tf("news.blendMeta", {
-              avg: result.avgBlend.toFixed(2),
-              net: result.totalNet.toFixed(2),
-              n: result.rows.length,
-            })}
-          </Text>
-          {result.rows.map((r, i) => (
-            <Text key={i} style={styles.rowLine}>
-              • {r.text.length > 90 ? r.text.slice(0, 90) + "…" : r.text}
-              {"\n"}
-              <Text style={styles.rowSub}>
-                blend {r.blend.toFixed(2)} (rules {r.net.toFixed(2)})
-              </Text>
-            </Text>
-          ))}
-        </View>
-      )}
-      {result && result.rows.length === 0 && (
-        <Text style={styles.hint}>{t("news.addSentence")}</Text>
-      )}
     </ScrollView>
   );
 }
@@ -283,66 +212,4 @@ const styles = StyleSheet.create({
     color: theme.fgMuted,
     lineHeight: 18,
   },
-  useLink: {
-    marginTop: 6,
-    color: theme.accent,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  subheading: {
-    marginTop: 20,
-    marginBottom: 6,
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.fg,
-  },
-  input: {
-    backgroundColor: theme.surface,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    color: theme.fg,
-    minHeight: 120,
-    textAlignVertical: "top",
-    borderWidth: 1,
-    borderColor: theme.border,
-    marginBottom: 12,
-  },
-  btn: {
-    backgroundColor: theme.accent,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 16,
-    minHeight: 52,
-    justifyContent: "center",
-  },
-  btnInner: { flexDirection: "row", alignItems: "center", gap: 10 },
-  btnText: { color: theme.onAccent, fontWeight: "700", fontSize: 17 },
-  card: {
-    backgroundColor: theme.surface,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.border,
-  },
-  resultLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.fgMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  resultMain: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: theme.fg,
-    marginBottom: 8,
-  },
-  up: { color: theme.success },
-  down: { color: theme.warn },
-  meta: { color: theme.fgMuted, fontSize: 14, marginBottom: 12 },
-  rowLine: { color: theme.fg, fontSize: 14, marginBottom: 10 },
-  rowSub: { color: theme.fgMuted, fontSize: 13 },
 });

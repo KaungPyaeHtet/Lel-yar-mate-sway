@@ -46,7 +46,6 @@ export function SettingsPanel() {
             {t("settings.languageEn")}
           </button>
         </div>
-        <p className="hint tight-top">{t("settings.languageNote")}</p>
       </div>
 
       <div className="subheading-row">

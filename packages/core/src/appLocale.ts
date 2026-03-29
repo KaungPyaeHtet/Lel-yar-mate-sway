@@ -23,7 +23,6 @@ export type AppStringKey =
   | "settings.languageTitle"
   | "settings.languageMy"
   | "settings.languageEn"
-  | "settings.languageNote"
   | "about.title"
   | "about.body"
   | "market.title"
@@ -52,21 +51,10 @@ export type AppStringKey =
   | "news.filterAll"
   | "news.filterMyanmar"
   | "news.filterIntl"
-  | "news.addToHint"
-  | "news.subheading"
-  | "news.hintPaste"
-  | "news.placeholder"
-  | "news.estimate"
-  | "news.resultLabel"
-  | "news.blendMeta"
-  | "news.addSentence"
   | "news.verdictUp"
   | "news.verdictDown"
   | "news.verdictFlat"
   | "weather.title"
-  | "weather.hintWeb"
-  | "weather.hintMobile"
-  | "weather.openMeteo"
   | "weather.useLocation"
   | "weather.gettingLocation"
   | "weather.nearYou"
@@ -98,20 +86,18 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "tab.weather": "ရာသီဥတု",
     "tab.news": "သတင်း",
     "tab.settings": "ချိန်ညှိမှု",
-    "home.tag": "",
+    "home.tag":
+      "သတင်းမဖတ်ဖြစ်သော စိုက်ပျိုးရှင်များအတွက် သတင်းနှင့် ဈေးလမ်းကြောင်း ခန့်မှန်းချက်။",
     "home.pill": "",
     "settings.title": "ချိန်ညှိမှု",
     "settings.languageTitle": "ဘာသာစကား",
     "settings.languageMy": "မြန်မာ",
     "settings.languageEn": "အင်္ဂလိပ်",
-    "settings.languageNote":
-      "ရွေးချယ်မှုကို ဤစက်တွင် သိမ်းထားသည်။ ဝဘ်နှင့် ဖုန်း ခွဲသိမ်းပါသည်။",
     "about.title": "အကြောင်း",
     "about.body":
-      "Agriora ဟက်ခါသန်း အဖွဲ့။ ဝဘ်တွင် Vite + React၊ မိုဘိုင်းတွင် Expo။ @agriora/core တွင် data.xlsx ဈေးနှုန်း၊ သတင်း RSS၊ စျေးညွှန်အချက်များ၊ မြန်မာဒေသရာသီဥတု ပါဝင်သည်။ ရာသီဥတု — Open-Meteo။",
+      "ကျွန်ုပ်တို့သည် မြန်မာ စိုက်ပျိုးရှင်များ အတွက် Agriora အဖွဲ့ဖြစ်ပါသည်။\n\nစိုက်ပျိုးရှင်အများစုမှာ နေ့စဉ် စျေးကွက် သတင်းများ သို့မဟုတ် ကမ္ဘာ့ကုန်ဈေး သတင်းများကို မဖတ်ဖြစ်ကြပါ။ သို့သော် ထိုသတင်းများက ဈေးနှုန်း တက်ခြင်း သို့ ကျခြင်းနှင့် ဆက်နွယ်နေတတ်ပါသည်။\n\nAgriora သည် သတင်းများကို စုစည်းကာ ခန့်မှန်းချက်နှင့် ပေါင်းစပ်၍ ဈေးလမ်းကြောင်း ပြသပေးပါသည်။ သတင်းမဖတ်ဖြစ်သော်လည်း ဈေးအပြောင်းအလဲကို ကြိုတင်သိရှိပြီး ရောင်းဝယ်ချိန်ကို ပိုကောင်းအောင် စီစဉ်နိုင်စေရန်၊ စိုက်ပျိုးသူများ အကျိုးအမြတ် ရရှိရေး ကူညီပေးရန် ရည်ရွယ်ပါသည်။",
     "market.title": "စျေးကွက် ဈေးနှုန်းများ",
-    "market.hint":
-      "အခြေခံသည် data.xlsx ({count} ကုန်ပစ္စည်း၊ နောက်ဆုံး ထုတ်ယူမှု {generated})။ သတင်းနှင့် ရာသီဥတုဖြင့် ခန့်မှန်းချက်ကို ပြုပြင်သည် — ပညာပေးရန် သာ၊ အကြံပြုချက် မဟုတ်ပါ။",
+    "market.hint": "",
     "market.searchPlaceholder": "ရှာဖွေရန် (မြန်မာ သို့မဟုတ် အမျိုးအစား)…",
     "market.searchAria": "ကုန်ပစ္စည်း ရှာရန်",
     "market.itemsAria": "ကုန်ပစ္စည်း စာရင်း",
@@ -132,32 +118,17 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
       "ပြသရန် မော်ဒယ်သာ — ငွေကြေး၊ ဥပဒေ သို့ စိုက်ပျိုးရေးအကြံ မဟုတ်ပါ။",
     "news.title": "သတင်း",
     "news.hint":
-      "BBC မြန်မာ နှင့် RSS အခြားရင်းမြစ်၊ Google News (မြန်မာ/ကမ္ဘာ့ကုန်ဈေး)။ အင်တာနက်လိုအပ်သည်။ ဘရောက်ဆာပိတ်ဆို့လျှင် rss2json သုံးနိုင်သည် (ပြပွဲသာ)။",
+      "စျေးကွက်နှင့် စိုက်ပျိုးရေးသတင်း ခေါင်းစဉ်များ။ အင်တာနက်ချိတ်ဆက်မှု လိုအပ်သည်။ ပြန်ဖတ်ခြင်းဖြင့် အသစ်ဆွဲယူပါ။",
     "news.refresh": "ပြန်ဖတ်",
     "news.loadingHeadlines": "ဖတ်နေသည်…",
     "news.filterAria": "ဒေသ စစ်ထုတ်ရန်",
     "news.filterAll": "အားလုံး",
     "news.filterMyanmar": "မြန်မာ / ဒေသ",
     "news.filterIntl": "နိုင်ငံတကာ",
-    "news.addToHint": "စျေးညွှန်သို့ ထည့်ရန်",
-    "news.subheading": "သတင်း → စျေးညွှန်",
-    "news.hintPaste":
-      "အထက်မှ ခေါင်းစဉ်များ ထည့်ပါ၊ ပြီးလျှင် စည်းမျဉ်း ဖော်ပြချက်ကို ဖွင့်ပါ (အကြံပြုချက် မဟုတ်)။",
-    "news.placeholder": "စာပိုဒ် ကူးထည့်ပါ…",
-    "news.estimate": "လမ်းကြောင်း ခန့်မှန်း",
-    "news.resultLabel": "ခန့်မှန်း",
-    "news.blendMeta":
-      "ပျမ်းမျှ ပေါင်း {avg} · သော့ချက် အသာတကြမ်း {net} · စာပိုဒ် {n} ခု",
-    "news.addSentence": "စာကြောင်း တစ်ကြောင်း အနည်းဆုံး ထည့်ပါ။",
     "news.verdictUp": "ဈေးနှုန်း တက်နိုင်သည်",
     "news.verdictDown": "ဈေးနှုန်း ကျနိုင်သည်",
     "news.verdictFlat": "ဈေးနှုန်း တည်ငြိမ်နိုင်သည်",
     "weather.title": "မြန်မာ ရာသီဥတု",
-    "weather.hintWeb":
-      "Open-Meteo (API သော့ မလို)။ တည်နေရာအတွက် HTTPS သို့ localhost လိုအပ်သည်။",
-    "weather.hintMobile":
-      "Open-Meteo (API သော့ မလို)။ အင်တာနက်လိုအပ်သည်။ GPS သည် ဤဖုန်းတွင်သာ သုံးသည်။",
-    "weather.openMeteo": "Open-Meteo",
     "weather.useLocation": "ကျွန်ုပ် တည်နေရာ သုံးရန်",
     "weather.gettingLocation": "တည်နေရာ ရယူနေသည်…",
     "weather.nearYou": "သင်နီးစပ်",
@@ -192,20 +163,18 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "tab.weather": "Weather",
     "tab.news": "News",
     "tab.settings": "Settings",
-    "home.tag": "Hackathon app — Vite + React and @agriora/core on web & mobile.",
+    "home.tag":
+      "News and forecasts for growers — clearer prices even when you miss the headlines.",
     "home.pill": "Offline-first rules",
     "settings.title": "Settings",
     "settings.languageTitle": "Language",
     "settings.languageMy": "Burmese",
     "settings.languageEn": "English",
-    "settings.languageNote":
-      "Your choice is saved on this device. Web and phone store separately.",
     "about.title": "About",
     "about.body":
-      "Team Agriora — hackathon build. Web uses Vite + React; mobile uses Expo. @agriora/core holds market data from data.xlsx, live RSS headlines, price hints, and Myanmar places for weather. Forecasts from Open-Meteo.",
+      "We are Team Agriora — a team building for Myanmar’s farmers.\n\nMany growers do not read market and commodity news every day. Those stories still carry signals about whether prices may rise or fall.\n\nAgriora gathers relevant headlines, combines them with price trends and weather, and shows a simple forecast direction. Our goal is to help farmers plan buying and selling even when they miss the news — so they can spot opportunities and improve returns.",
     "market.title": "Market prices",
-    "market.hint":
-      "Baseline from data.xlsx ({count} items with prices, generated {generated}). Optional news + weather adjust a simple demo forecast — not advice.",
+    "market.hint": "",
     "market.searchPlaceholder": "Search (Myanmar or category text)…",
     "market.searchAria": "Search market items",
     "market.itemsAria": "Items",
@@ -225,32 +194,17 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
       "Illustrative model only — not financial, legal, or agronomic advice.",
     "news.title": "News",
     "news.hint":
-      "BBC Burmese and other RSS; Google News for Myanmar and commodities. Needs network; rss2json fallback if a feed blocks the browser (demo only).",
+      "Market and farming headlines from the internet. Refresh to load the latest.",
     "news.refresh": "Refresh",
     "news.loadingHeadlines": "Loading…",
     "news.filterAria": "Filter by region",
     "news.filterAll": "All",
     "news.filterMyanmar": "Myanmar / region",
     "news.filterIntl": "International",
-    "news.addToHint": "Add to price hint box",
-    "news.subheading": "News → price hint",
-    "news.hintPaste":
-      "Paste or add headlines above, then run the offline rules (not advice).",
-    "news.placeholder": "Paste a paragraph…",
-    "news.estimate": "Estimate trend",
-    "news.resultLabel": "Estimate",
-    "news.blendMeta":
-      "Blend avg {avg} · keyword net {net} · {n} sentence(s)",
-    "news.addSentence": "Add at least a short sentence.",
     "news.verdictUp": "Prices may increase",
     "news.verdictDown": "Prices may decrease",
     "news.verdictFlat": "Prices may stay about the same",
     "weather.title": "Myanmar weather",
-    "weather.hintWeb":
-      "Data from Open-Meteo (no API key). Use HTTPS or localhost for location.",
-    "weather.hintMobile":
-      "Data from Open-Meteo (no API key). Needs internet. GPS uses this phone only.",
-    "weather.openMeteo": "Open-Meteo",
     "weather.useLocation": "Use my location",
     "weather.gettingLocation": "Getting location…",
     "weather.nearYou": "Near you",

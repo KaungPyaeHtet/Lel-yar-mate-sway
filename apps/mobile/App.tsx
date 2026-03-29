@@ -2,7 +2,7 @@ import type { AppStringKey } from "@agriora/core";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import { useState, type ComponentProps } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { LocaleProvider, useI18n } from "./LocaleContext";
 import { MarketTab } from "./MarketTab";
 import { NewsTab } from "./NewsTab";
@@ -40,13 +40,12 @@ function AppShell() {
       <View style={styles.main}>
         {tab === "home" && (
           <View style={styles.center}>
-            <Ionicons
-              name="leaf-outline"
-              size={48}
-              color={theme.accent}
-              style={styles.homeSprout}
+            <Image
+              source={require("./assets/agriora-logo.png")}
+              style={styles.logoImg}
+              accessibilityLabel="Agriora"
+              accessibilityRole="image"
             />
-            <Text style={styles.logo}>Agriora</Text>
             {homeTag ? <Text style={styles.tag}>{homeTag}</Text> : null}
             {homePill ? (
               <View style={styles.pill}>
@@ -110,12 +109,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 24,
   },
-  homeSprout: { marginBottom: 8 },
-  logo: {
-    fontSize: 44,
-    fontWeight: "700",
-    color: theme.accent,
-    letterSpacing: -1,
+  logoImg: {
+    width: 220,
+    height: 220,
+    resizeMode: "contain",
+    marginBottom: 4,
   },
   tag: {
     marginTop: 14,
