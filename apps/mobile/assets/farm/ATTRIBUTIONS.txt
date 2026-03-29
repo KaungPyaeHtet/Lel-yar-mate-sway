@@ -1,0 +1,2 @@
+See apps/web/public/images/farm/ATTRIBUTIONS.txt for photographer credits and Unsplash links.
+Same JPEG files are copied here for the Expo bundle.

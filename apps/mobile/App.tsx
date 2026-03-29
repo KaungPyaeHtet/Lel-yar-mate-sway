@@ -1,9 +1,17 @@
 import type { AppStringKey } from "@agriora/core";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
-import { useState, type ComponentProps } from "react";
 import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
+import {
+  AccessibilityInfo,
   ActivityIndicator,
+  Animated,
   Image,
   Pressable,
   StyleSheet,
@@ -20,11 +28,83 @@ import { LocaleProvider, useI18n } from "./LocaleContext";
 import { MarketTab } from "./MarketTab";
 import { NewsTab } from "./NewsTab";
 import { SettingsTab } from "./SettingsTab";
+import { HomeFarmShowcase } from "./HomeFarmShowcase";
 import { WeatherTab } from "./WeatherTab";
 import { myLh, theme } from "./theme";
 import { UiText } from "./UiText";
 
 type Tab = "home" | "market" | "weather" | "news" | "settings";
+
+function AgrioraLogo({ width }: { width: number }) {
+  return (
+    <Image
+      source={require("./assets/agriora-logo.png")}
+      style={{ width, height: width, resizeMode: "contain" }}
+      accessibilityLabel="Agriora"
+    />
+  );
+}
+
+function TabTransition({
+  tabKey,
+  children,
+}: {
+  tabKey: Tab;
+  children: ReactNode;
+}) {
+  const opacity = useRef(new Animated.Value(1)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const isFirstTab = useRef(true);
+
+  useEffect(() => {
+    if (isFirstTab.current) {
+      isFirstTab.current = false;
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      const reduceMotion = await AccessibilityInfo.isReduceMotionEnabled();
+      if (cancelled) return;
+
+      if (reduceMotion) {
+        opacity.setValue(1);
+        translateY.setValue(0);
+        return;
+      }
+
+      opacity.setValue(0);
+      translateY.setValue(14);
+
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [tabKey, opacity, translateY]);
+
+  return (
+    <Animated.View
+      style={[styles.mainFill, { opacity, transform: [{ translateY }] }]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
 
 const tabIcons: Record<Tab, ComponentProps<typeof Ionicons>["name"]> = {
   home: "home-outline",
@@ -37,8 +117,8 @@ const tabIcons: Record<Tab, ComponentProps<typeof Ionicons>["name"]> = {
 function AppShell() {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("home");
-  const homeTag = t("home.tag");
   const homePill = t("home.pill");
+  const homeTag = t("home.tag");
 
   const tabbarTabs: { id: Tab; labelKey: AppStringKey }[] = [
     { id: "home", labelKey: "tab.home" },
@@ -50,14 +130,13 @@ function AppShell() {
     <View style={styles.root}>
       <StatusBar style="dark" />
       <View style={styles.main}>
+        <TabTransition tabKey={tab}>
         {tab === "home" && (
           <View style={styles.center}>
-            <Image
-              source={require("./assets/agriora-logo.png")}
-              style={styles.logoImg}
-              accessibilityLabel="Agriora"
-              accessibilityRole="image"
-            />
+            <HomeFarmShowcase />
+            <View style={styles.logoWrap}>
+              <AgrioraLogo width={220} />
+            </View>
             {homeTag ? <UiText style={styles.tag}>{homeTag}</UiText> : null}
             {homePill ? (
               <View style={styles.pill}>
@@ -108,6 +187,7 @@ function AppShell() {
         {tab === "news" && <NewsTab isActive={tab === "news"} />}
 
         {tab === "settings" && <SettingsTab />}
+        </TabTransition>
       </View>
 
       <View style={styles.tabbar}>
@@ -116,7 +196,11 @@ function AppShell() {
           return (
             <Pressable
               key={id}
-              style={styles.tab}
+              style={({ pressed }) => [
+                styles.tab,
+                pressed && styles.tabPressed,
+              ]}
+              android_ripple={{ color: "rgba(27, 107, 54, 0.2)" }}
               onPress={() => setTab(id)}
             >
               <Ionicons
@@ -173,17 +257,16 @@ const styles = StyleSheet.create({
   },
   root: { flex: 1, backgroundColor: theme.bg },
   main: { flex: 1, paddingTop: 52 },
+  mainFill: { flex: 1 },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
   },
-  logoImg: {
-    width: 220,
-    height: 220,
-    resizeMode: "contain",
-    marginBottom: 4,
+  logoWrap: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   tag: {
     marginTop: 14,
@@ -258,6 +341,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     paddingHorizontal: 4,
+  },
+  tabPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.97 }],
   },
   tabText: {
     color: theme.fgMuted,

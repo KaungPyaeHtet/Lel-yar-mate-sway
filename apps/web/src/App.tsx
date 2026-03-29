@@ -12,6 +12,7 @@ import { LocaleProvider, useI18n } from "./LocaleContext";
 import { MarketPanel } from "./MarketPanel";
 import { NewsPanel } from "./NewsPanel";
 import { SettingsPanel } from "./SettingsPanel";
+import { HomeFarmShowcase } from "./HomeFarmShowcase";
 import { WeatherPanel } from "./WeatherPanel";
 
 type Tab = "home" | "market" | "weather" | "news" | "settings";
@@ -27,8 +28,8 @@ const tabIcons = {
 function AppShell() {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("home");
-  const homeTag = t("home.tag");
   const homePill = t("home.pill");
+  const homeTag = t("home.tag");
 
   const tabbarTabs: { id: Tab; labelKey: AppStringKey }[] = [
     { id: "home", labelKey: "tab.home" },
@@ -39,8 +40,10 @@ function AppShell() {
   return (
     <div className="app">
       <main className="main">
+        <div key={tab} className="main-panel">
         {tab === "home" && (
           <div className="hero">
+            <HomeFarmShowcase />
             <h1 className="logo-mark">
               <img
                 className="logo-img"
@@ -51,7 +54,7 @@ function AppShell() {
                 decoding="async"
               />
             </h1>
-            {homeTag ? <p className="tag">{homeTag}</p> : null}
+            {homeTag ? <p className="hero-tag">{homeTag}</p> : null}
             {homePill ? <span className="pill">{homePill}</span> : null}
             <div className="home-quick-actions">
               <button
@@ -83,6 +86,7 @@ function AppShell() {
         {tab === "news" && <NewsPanel isActive={tab === "news"} />}
 
         {tab === "settings" && <SettingsPanel />}
+        </div>
       </main>
 
       <nav className="tabbar" aria-label={t("nav.mainAria")}>
