@@ -16,7 +16,7 @@ import {
   getMarketItemById,
   initialMarketTabItemId,
   MARKET_ITEMS,
-  tomorrowDateIsoLocal,
+  mlNewsHeadlineForItem,
   getMlApiBaseUrl,
   midPriceMomentumPct,
   observationMidsOldestToNewest,
@@ -25,6 +25,7 @@ import {
   recentMidPricesForInference,
   riceMidSeriesForChart,
   searchMarketItems,
+  shortMarketItemLabelForUi,
   riceNewsContextToLines,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
@@ -76,6 +77,7 @@ function MlAdviceRationaleMobile({
   t,
   tf,
   detail,
+  itemLabel,
   newsLines,
   weatherSnap,
   screenVerdictLabel,
@@ -85,6 +87,7 @@ function MlAdviceRationaleMobile({
   t: (k: AppStringKey) => string;
   tf: (k: AppStringKey, vars: Record<string, string | number>) => string;
   detail: MlNextDayDetail;
+  itemLabel: string;
   newsLines: string[];
   weatherSnap: CurrentWeatherSnapshot;
   screenVerdictLabel: string;
@@ -100,12 +103,11 @@ function MlAdviceRationaleMobile({
     <View style={styles.adviceRationale}>
       <UiText style={styles.rationaleP}>
         {tf("market.adviceWhySummary", {
+          item: itemLabel,
           pct: formatSignedPercent(detail.nextDayPctChange),
           strength,
         })}
       </UiText>
-      <UiText style={styles.rationaleP}>{t("market.adviceWhyTrust")}</UiText>
-      <UiText style={styles.rationaleP}>{t("market.adviceWhyInputs")}</UiText>
       {usedPlaceholderNews ? (
         <UiText style={styles.rationaleP}>
           {t("market.adviceDetailsPlaceholderNews")}
@@ -301,7 +303,10 @@ export function MarketTab() {
     setMlErr(null);
     setMlDetail(null);
     setAdviceDetailOpen(false);
-    const headline = newsAuto.trim() || ML_HEADLINE_FALLBACK;
+    const headline = mlNewsHeadlineForItem(
+      newsAuto.trim() || ML_HEADLINE_FALLBACK,
+      selected
+    );
     const rawMids = observationMidsOldestToNewest(selected);
     const momentum =
       rawMids.length >= 8
@@ -312,7 +317,7 @@ export function MarketTab() {
       avgPrices: prices,
       rainfallMm: rainMm,
       tempC: weatherSnap.temperatureC,
-      newsHeadline: headline.slice(0, 4000),
+      newsHeadline: headline,
       fallbackMomentum: momentum,
     })
       .then((d) => {
@@ -352,11 +357,6 @@ export function MarketTab() {
     return formatLongDateLabel(latestDateIso, locale);
   }, [latestDateIso, locale]);
 
-  const forecastForDateLabel =
-    prediction != null
-      ? formatLongDateLabel(tomorrowDateIsoLocal(), locale)
-      : null;
-
   const mlForecastKyat =
     prediction && mlDetail
       ? forecastKyatFromMlPct(
@@ -369,6 +369,11 @@ export function MarketTab() {
 
   const displayForecastMid =
     mlForecastKyat?.mid ?? prediction?.predictedMid ?? null;
+
+  const adviceItemLabel = useMemo(
+    () => shortMarketItemLabelForUi(selected),
+    [selected]
+  );
 
   return (
     <ScrollView
@@ -446,42 +451,23 @@ export function MarketTab() {
             <UiText style={styles.resultLabel}>
               {t("market.forecastPriceTitle")}
             </UiText>
-            {latestDateLabel ? (
-              <UiText style={styles.dateCaption}>
-                {tf("market.forecastFromLatest", { date: latestDateLabel })}
-              </UiText>
-            ) : null}
-            {forecastForDateLabel ? (
-              <UiText style={styles.forecastForDateCaption}>
-                {tf("market.forecastForDate", { date: forecastForDateLabel })}
-              </UiText>
-            ) : null}
             <UiText style={styles.predMid}>
               {formatMmks(displayForecastMid)} {t("common.mmk")}
             </UiText>
-            {mlForecastKyat ? (
-              <UiText style={styles.dateCaption}>
-                {t("market.forecastMlSource")}
-              </UiText>
-            ) : mlBase && mlLoading ? (
-              <UiText style={styles.dateCaption}>
-                {t("market.forecastAwaitingMl")}
-              </UiText>
-            ) : (
-              <UiText style={styles.dateCaption}>
-                {t("market.forecastHeuristicSource")}
-              </UiText>
-            )}
+            <UiText style={styles.dateCaption}>
+              {mlDetail != null
+                ? tf("market.forecastConfidenceMl", {
+                    pct: Math.round(mlDetail.confidenceHint * 100),
+                  })
+                : mlBase && mlLoading
+                  ? t("market.forecastConfidenceLoading")
+                  : t("market.forecastConfidenceNoMl")}
+            </UiText>
           </View>
         ) : null}
 
         <View style={styles.mlBlock}>
           <UiText style={styles.resultLabel}>{t("market.adviceTitle")}</UiText>
-          {latestDateLabel ? (
-            <UiText style={styles.dateCaption}>
-              {tf("market.mlUsesLatestDate", { date: latestDateLabel })}
-            </UiText>
-          ) : null}
           {mlBase ? (
             <>
               {mlLoading ? (
@@ -492,7 +478,8 @@ export function MarketTab() {
                 <>
                   <MlAdviceRow
                     advice={adviceFromMlNextDayPct(
-                      mlDetail.nextDayPctChange
+                      mlDetail.nextDayPctChange,
+                      { priceChange7dPct: mlDetail.priceChange7dPct }
                     )}
                     t={t}
                     onPress={() =>
@@ -505,6 +492,7 @@ export function MarketTab() {
                       t={t}
                       tf={tf}
                       detail={mlDetail}
+                      itemLabel={adviceItemLabel}
                       newsLines={newsLines}
                       weatherSnap={weatherSnap}
                       screenVerdictLabel={screenVerdictLabel}
@@ -512,11 +500,6 @@ export function MarketTab() {
                     />
                   ) : null}
                 </>
-              ) : null}
-              {mlDetail != null ? (
-                <UiText style={styles.adviceDisclaimer}>
-                  {t("market.adviceDisclaimer")}
-                </UiText>
               ) : null}
             </>
           ) : (
@@ -632,13 +615,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 2,
   },
-  forecastForDateCaption: {
-    color: theme.fg,
-    fontSize: 14,
-    fontWeight: "600",
-    lineHeight: myLh(14),
-    marginBottom: 8,
-  },
   prediction: {
     marginTop: 8,
     paddingTop: 12,
@@ -753,11 +729,5 @@ const styles = StyleSheet.create({
     color: theme.fgMuted,
     marginBottom: 10,
     fontStyle: "italic",
-  },
-  adviceDisclaimer: {
-    marginTop: 10,
-    fontSize: 12,
-    lineHeight: myLh(12),
-    color: theme.fgMuted,
   },
 });

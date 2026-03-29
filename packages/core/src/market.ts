@@ -303,3 +303,39 @@ export function predictItemPrice(
     },
   };
 }
+
+const ML_NEWS_HEADLINE_MAX = 4000;
+
+/**
+ * Suffix global RSS/news text with the selected sheet row so ML sentiment + nf_*
+ * features are not identical for every commodity (price lags already differ).
+ */
+export function mlNewsHeadlineForItem(
+  newsBlob: string,
+  item: MarketItem,
+  maxChars = ML_NEWS_HEADLINE_MAX
+): string {
+  const focus = `Commodity context: ${item.itemCategory}. ${item.itemDetails}`;
+  const base = newsBlob.trim() || "Commodity markets.";
+  const suffix = ` ${focus}`;
+  let combined = `${base}${suffix}`;
+  if (combined.length <= maxChars) return combined;
+  const maxBase = Math.max(96, maxChars - suffix.length - 2);
+  const trimmed =
+    base.length > maxBase ? `${base.slice(0, maxBase - 1)}…` : base;
+  combined = `${trimmed}${suffix}`;
+  return combined.length <= maxChars
+    ? combined
+    : `${combined.slice(0, maxChars - 1)}…`;
+}
+
+/** Short label for advice UI (category + detail, truncated). */
+export function shortMarketItemLabelForUi(
+  item: MarketItem,
+  maxChars = 120
+): string {
+  const s = [item.itemCategory, item.itemDetails].filter(Boolean).join(" · ");
+  const t = s.trim() || item.id;
+  if (t.length <= maxChars) return t;
+  return `${t.slice(0, Math.max(0, maxChars - 1))}…`;
+}

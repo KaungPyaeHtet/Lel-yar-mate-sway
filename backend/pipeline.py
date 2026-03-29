@@ -16,7 +16,9 @@ import backend.native_env  # noqa: F401 — before NumPy (OpenMP)
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+from sklearn.ensemble import HistGradientBoostingRegressor
 
+from .news_features import NEWS_FEATURE_NAMES, lexical_news_features
 from .sentiment import get_rice_market_sentiment
 from .timesfm_features import TimesFMFeatureExtractor, add_timesfm_features_to_frame
 
@@ -24,6 +26,7 @@ __all__ = [
     "build_supervised_frame",
     "build_supervised_frame_with_dates",
     "make_xgb_regressor",
+    "make_hgb_regressor",
     "make_xgb_regressor_for_backtest",
     "supervised_feature_columns",
     "build_inference_feature_matrix",
@@ -41,6 +44,7 @@ def supervised_feature_columns(
         rainfall_col,
         temp_col,
         "sentiment_score",
+        *NEWS_FEATURE_NAMES,
         *TimesFMFeatureExtractor.feature_names(),
     ]
 
@@ -70,6 +74,7 @@ def build_inference_features_and_meta(
     ts = ext.transform(p[:-1])
     pt, p1, p7 = float(p[-1]), float(p[-2]), float(p[-8])
     sent = float(get_rice_market_sentiment(hl))
+    nf = lexical_news_features(news_headline)
 
     row = {
         "price_lag1_rel": pt / p1 - 1.0,
@@ -77,6 +82,7 @@ def build_inference_features_and_meta(
         rainfall_col: float(rainfall_mm),
         temp_col: float(temp_c),
         "sentiment_score": sent,
+        **nf,
     }
     for name, val in zip(TimesFMFeatureExtractor.feature_names(), ts):
         row[name] = float(val)
@@ -148,6 +154,9 @@ def build_supervised_frame_with_dates(
     d["sentiment_score"] = [
         get_rice_market_sentiment(headlines_cell(h)) for h in d[headline_col]
     ]
+    _nf = [lexical_news_features(h) for h in d[headline_col]]
+    for name in NEWS_FEATURE_NAMES:
+        d[name] = [r[name] for r in _nf]
 
     nxt = d[price_col].shift(-1)
     d["target_pct_change"] = (nxt - d[price_col]) / d[price_col] * 100.0
@@ -204,6 +213,20 @@ def make_xgb_regressor(**kwargs) -> xgb.XGBRegressor:
     )
     params.update(kwargs)
     return xgb.XGBRegressor(**params)
+
+
+def make_hgb_regressor(**kwargs) -> HistGradientBoostingRegressor:
+    """Sklearn HGB regressor — second opinion for ensemble with XGBoost (same features)."""
+    params = dict(
+        max_iter=400,
+        learning_rate=0.06,
+        max_depth=6,
+        min_samples_leaf=2,
+        l2_regularization=0.1,
+        random_state=42,
+    )
+    params.update(kwargs)
+    return HistGradientBoostingRegressor(**params)
 
 
 def make_xgb_regressor_for_backtest(n_train_rows: int, **kwargs) -> xgb.XGBRegressor:

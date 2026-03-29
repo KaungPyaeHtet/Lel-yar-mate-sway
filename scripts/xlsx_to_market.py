@@ -2,9 +2,9 @@
 """
 Read root data.xlsx (Myanmar ag market lows/highs by date) and emit:
   - packages/core/src/marketData.generated.ts for @agriora/core
-  - backend/data/rice_data.csv — one daily series from the primary စပါး/ဆန် row
-    (mid-price from low/high, synthetic March weather + headline templates)
-    for XGBoost training /api/predict/next-day-pct.
+  - backend/data/rice_data.csv — one daily series from the workbook (rice or fallback row)
+    (mid-price from low/high, synthetic March weather + multi-sentence English headlines:
+    rice, oil, logistics, policy, weather) for XGBoost training /api/predict/next-day-pct.
 
 The app’s Rice tab uses `RICE_MARKET_ITEMS`: rows whose category/detail match
 riceMarket.ts. If none, demo seed data is used and rice_data.csv is skipped.
@@ -170,8 +170,10 @@ def synthetic_seed_daily(periods_iso: list[str]) -> list[tuple[str, float]]:
     return daily_series_from_observations(anchors)
 
 
-# Headlines for ML sentiment features (English; pipeline splits on ".")
-_RICE_HEADLINES = [
+# Headlines for ML training (English). Join several per day so sentiment + nf_* features vary.
+# Pipeline splits on "." / ";" — use "." inside each sentence only at the end.
+_HEADLINE_BANK: tuple[str, ...] = (
+    # Rice / grains / food
     "Rice wholesale steady as mandi arrivals pick up after the holiday.",
     "Export demand supports local paddy quotes; traders watch policy signals.",
     "Monsoon outlook improves for delta plantings; futures drift slightly lower.",
@@ -180,7 +182,66 @@ _RICE_HEADLINES = [
     "Heatwave warnings lift irrigation costs; farmgate paddy bids firm.",
     "Regional buyers return after floods; milled rice moves in thin trade.",
     "Government buffer release cools retail rice inflation in urban markets.",
-]
+    "Wheat futures rise on Black Sea supply worries and strong import demand.",
+    "Corn prices climb as ethanol margins improve and inventories tighten.",
+    "Soybean meal demand lifts grain complex; rice follows sentiment higher.",
+    "Asia food inflation watch: governments mull release of strategic reserves.",
+    "Delta farmers report steady transplant progress; rice quotes unmoved.",
+    "Milled rice export registrations pick up ahead of the festival season.",
+    "Parboiled rice spreads widen on higher energy and packaging costs.",
+    # Oil / energy (nf_oil_energy + price direction)
+    "Crude oil prices surge after OPEC signals deeper output cuts next quarter.",
+    "Brent futures jump as refinery outages tighten diesel supply in Asia.",
+    "Fuel costs rise sharply; truckers warn of higher food distribution charges.",
+    "Oil prices fall as inventories build and demand outlook softens.",
+    "WTI slides on stronger dollar; energy importers get brief relief.",
+    "Diesel prices decline at the pump; logistics firms pass through savings.",
+    "OPEC+ meeting ends with surprise production increase; crude eases.",
+    "Geopolitical risk premium fades; barrel prices drop for a third session.",
+    # Transport / logistics
+    "Container freight rates increase on Asia-Europe lanes; ag exporters fret.",
+    "Port congestion returns; vessel queues delay bulk grain loadings.",
+    "Shipping lines announce surcharges; commodity traders brace for costs.",
+    "Freight indices soften as new vessel supply enters the market.",
+    "Truck strike threat lifted; inland rice movement normalizes.",
+    "Rail bottlenecks ease after ministry intervention; deliveries speed up.",
+    # Policy / macro
+    "Central bank holds rates; currency stability supports import parity pricing.",
+    "Government announces fertilizer subsidy; farmers welcome lower input costs.",
+    "Parliament debates export curb on staples; rice traders stay cautious.",
+    "Sanctions chatter unsettles commodity finance; spreads widen briefly.",
+    "Trade ministry signals tariff review on edible oils; markets react mixed.",
+    "IMF mission notes inflation risks from weather and energy pass-through.",
+    # Weather / climate
+    "Cyclone alert issued; coastal states prepare as rice fields face wind risk.",
+    "Monsoon rains arrive early; irrigation demand drops for paddy farmers.",
+    "Drought warning in major growing belt; yield fears support grain quotes.",
+    "Flood alerts along main rivers; warehouse stocks at risk near ports.",
+    "Heatwave persists; power cuts disrupt cold storage for perishables.",
+    "La Niña watch raises monsoon uncertainty; ag markets trade nervously.",
+    "Normal monsoon forecast lifts planting sentiment; rice prices ease slightly.",
+    # Mixed macro / prices (explicit up/down language)
+    "Wholesale vegetable prices surge on transport disruption and heat damage.",
+    "Retail inflation cools as vegetable basket prices decline month on month.",
+    "Commodity index rallies; energy and grains lead the advance.",
+    "Agricultural futures ease as harvest pressure hits the cash market.",
+    "Import parity calculations rise; domestic rice offers firm up.",
+    "Export parity weakens; millers cut offers to attract buyers.",
+)
+
+
+def _composite_headline_for_row(index: int) -> str:
+    """Three varied sentences per day (deterministic) for richer training text."""
+    n = len(_HEADLINE_BANK)
+    if n == 0:
+        return "Agricultural markets steady amid thin trade."
+    a = (index * 31 + 7) % n
+    b = (index * 17 + 3) % n
+    c = (index * 13 + 11) % n
+    parts = [_HEADLINE_BANK[a], _HEADLINE_BANK[b]]
+    if c != a and c != b:
+        parts.append(_HEADLINE_BANK[c])
+    return " ".join(parts)
 
 
 def write_daily_ml_csv(
@@ -193,7 +254,7 @@ def write_daily_ml_csv(
     for i, (d_iso, mid) in enumerate(daily):
         rain = round(2.0 + (i * 4.17 + 1.3) % 16.0, 1)
         temp_c = round(29.0 + (i % 9) * 0.75 + 0.15 * (i % 3), 1)
-        headline = _RICE_HEADLINES[i % len(_RICE_HEADLINES)]
+        headline = _composite_headline_for_row(i)
         rows_out.append((d_iso, mid, rain, temp_c, headline))
 
     dest.parent.mkdir(parents=True, exist_ok=True)

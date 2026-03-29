@@ -15,7 +15,7 @@ import {
   getMarketItemById,
   initialMarketTabItemId,
   MARKET_ITEMS,
-  tomorrowDateIsoLocal,
+  mlNewsHeadlineForItem,
   getMlApiBaseUrl,
   midPriceMomentumPct,
   observationMidsOldestToNewest,
@@ -24,6 +24,7 @@ import {
   recentMidPricesForInference,
   riceMidSeriesForChart,
   searchMarketItems,
+  shortMarketItemLabelForUi,
   riceNewsContextToLines,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
@@ -60,6 +61,7 @@ function MlAdviceRationale({
   t,
   tf,
   detail,
+  itemLabel,
   newsLines,
   weatherSnap,
   screenVerdictLabel,
@@ -69,6 +71,7 @@ function MlAdviceRationale({
   t: (k: AppStringKey) => string;
   tf: (k: AppStringKey, vars: Record<string, string | number>) => string;
   detail: MlNextDayDetail;
+  itemLabel: string;
   newsLines: string[];
   weatherSnap: CurrentWeatherSnapshot;
   screenVerdictLabel: string;
@@ -84,12 +87,11 @@ function MlAdviceRationale({
     <div className="ml-advice-rationale">
       <p>
         {tf("market.adviceWhySummary", {
+          item: itemLabel,
           pct: formatSignedPercent(detail.nextDayPctChange),
           strength,
         })}
       </p>
-      <p>{t("market.adviceWhyTrust")}</p>
-      <p>{t("market.adviceWhyInputs")}</p>
       {usedPlaceholderNews ? (
         <p>{t("market.adviceDetailsPlaceholderNews")}</p>
       ) : null}
@@ -236,8 +238,10 @@ export function MarketPanel() {
     setMlLoading(true);
     setMlErr(null);
     setMlDetail(null);
-    const headline =
-      newsAuto.trim() || ML_HEADLINE_FALLBACK;
+    const headline = mlNewsHeadlineForItem(
+      newsAuto.trim() || ML_HEADLINE_FALLBACK,
+      selected
+    );
     const rawMids = observationMidsOldestToNewest(selected);
     const momentum =
       rawMids.length >= 8
@@ -248,7 +252,7 @@ export function MarketPanel() {
       avgPrices: prices,
       rainfallMm: rainMm,
       tempC: weatherSnap.temperatureC,
-      newsHeadline: headline.slice(0, 4000),
+      newsHeadline: headline,
       fallbackMomentum: momentum,
     })
       .then((d) => {
@@ -288,11 +292,6 @@ export function MarketPanel() {
     return formatLongDateLabel(latestDateIso, locale);
   }, [latestDateIso, locale]);
 
-  const forecastForDateLabel =
-    prediction != null
-      ? formatLongDateLabel(tomorrowDateIsoLocal(), locale)
-      : null;
-
   const mlForecastKyat =
     prediction && mlDetail
       ? forecastKyatFromMlPct(
@@ -305,6 +304,11 @@ export function MarketPanel() {
 
   const displayForecastMid =
     mlForecastKyat?.mid ?? prediction?.predictedMid ?? null;
+
+  const adviceItemLabel = useMemo(
+    () => shortMarketItemLabelForUi(selected),
+    [selected]
+  );
 
   return (
     <div className="panel market-panel">
@@ -365,42 +369,23 @@ export function MarketPanel() {
         {displayForecastMid != null && prediction && (
           <div className="prediction-block">
             <p className="result-label">{t("market.forecastPriceTitle")}</p>
-            {latestDateLabel ? (
-              <p className="meta market-date-caption">
-                {tf("market.forecastFromLatest", { date: latestDateLabel })}
-              </p>
-            ) : null}
-            {forecastForDateLabel ? (
-              <p className="meta market-date-caption forecast-for-day">
-                {tf("market.forecastForDate", { date: forecastForDateLabel })}
-              </p>
-            ) : null}
             <p className="prediction-mid">
               {formatMmks(displayForecastMid)} {t("common.mmk")}
             </p>
-            {mlForecastKyat ? (
-              <p className="meta market-date-caption">
-                {t("market.forecastMlSource")}
-              </p>
-            ) : mlBase && mlLoading ? (
-              <p className="meta market-date-caption">
-                {t("market.forecastAwaitingMl")}
-              </p>
-            ) : (
-              <p className="meta market-date-caption">
-                {t("market.forecastHeuristicSource")}
-              </p>
-            )}
+            <p className="meta market-date-caption">
+              {mlDetail != null
+                ? tf("market.forecastConfidenceMl", {
+                    pct: Math.round(mlDetail.confidenceHint * 100),
+                  })
+                : mlBase && mlLoading
+                  ? t("market.forecastConfidenceLoading")
+                  : t("market.forecastConfidenceNoMl")}
+            </p>
           </div>
         )}
 
         <div className="ml-backend-block">
           <p className="result-label">{t("market.adviceTitle")}</p>
-          {latestDateLabel ? (
-            <p className="meta market-date-caption">
-              {tf("market.mlUsesLatestDate", { date: latestDateLabel })}
-            </p>
-          ) : null}
           {mlBase ? (
             <>
               {mlLoading && (
@@ -409,7 +394,8 @@ export function MarketPanel() {
               {mlErr && <p className="weather-msg">{mlErr}</p>}
               {mlDetail != null && weatherSnap ? (() => {
                 const advice = adviceFromMlNextDayPct(
-                  mlDetail.nextDayPctChange
+                  mlDetail.nextDayPctChange,
+                  { priceChange7dPct: mlDetail.priceChange7dPct }
                 );
                 const glyph =
                   advice === "hold" ? "▲" : advice === "sell" ? "✕" : "—";
@@ -449,6 +435,7 @@ export function MarketPanel() {
                       t={t}
                       tf={tf}
                       detail={mlDetail}
+                      itemLabel={adviceItemLabel}
                       newsLines={newsLines}
                       weatherSnap={weatherSnap}
                       screenVerdictLabel={screenVerdictLabel}
@@ -457,11 +444,6 @@ export function MarketPanel() {
                   </details>
                 );
               })() : null}
-              {mlDetail != null && (
-                <p className="hint tight ml-advice-disclaimer">
-                  {t("market.adviceDisclaimer")}
-                </p>
-              )}
             </>
           ) : (
             <p className="hint tight">{t("market.mlBackendNoUrl")}</p>

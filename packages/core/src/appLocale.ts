@@ -34,9 +34,9 @@ export type AppStringKey =
   | "market.itemFilterPlaceholder"
   | "market.itemListHint"
   | "market.itemListCap"
-  | "market.forecastMlSource"
-  | "market.forecastHeuristicSource"
-  | "market.forecastAwaitingMl"
+  | "market.forecastConfidenceMl"
+  | "market.forecastConfidenceLoading"
+  | "market.forecastConfidenceNoMl"
   | "market.yangonWeather"
   | "market.myLocation"
   | "market.loading"
@@ -57,9 +57,6 @@ export type AppStringKey =
   | "market.mlBackendNoUrl"
   | "market.chartTitle"
   | "market.chartDataThrough"
-  | "market.forecastFromLatest"
-  | "market.forecastForDate"
-  | "market.mlUsesLatestDate"
   | "market.pythonAutoNote"
   | "market.forecastPriceTitle"
   | "market.weatherFallback"
@@ -70,14 +67,11 @@ export type AppStringKey =
   | "market.adviceSellSub"
   | "market.adviceNeutral"
   | "market.adviceNeutralSub"
-  | "market.adviceDisclaimer"
   | "market.adviceDetailsToggle"
   | "market.adviceWhySummary"
   | "market.adviceStrengthSoft"
   | "market.adviceStrengthMid"
   | "market.adviceStrengthFirm"
-  | "market.adviceWhyTrust"
-  | "market.adviceWhyInputs"
   | "market.adviceWhyHeadlines"
   | "market.adviceWhyHeadlinesMore"
   | "market.adviceWhyWeather"
@@ -147,11 +141,11 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.itemListHint": "ဖော်ပြထား {shown} / စုစုပေါင်း {total}",
     "market.itemListCap":
       "စာရင်း ၁၂၀ ထိသာ ပြပါသည် — ပိုရှာရန် အမည် ရိုက်ရှာပါ။",
-    "market.forecastMlSource":
-      "Python မော်ဒယ်၏ နောက်တစ်ရက် % ကို နောက်ဆုံး အလယ်ဈေးနှင့် မြှောက်ထားသည်။",
-    "market.forecastHeuristicSource":
-      "သတင်း/ရာသီဥတု စည်းမျဉ်း ခန့်မှန်း (ML မရရှိသေးပါ)။",
-    "market.forecastAwaitingMl": "ML ရလဒ် စောင့်နေသည်…",
+    "market.forecastConfidenceMl":
+      "မော်ဒယ် ယုံကြည်မှု — ခန့် {pct}% (အကြမ်း ညွှန်ပြချက်သာ)။",
+    "market.forecastConfidenceLoading": "မော်ဒယ် ယုံကြည်မှု တွက်နေသည်…",
+    "market.forecastConfidenceNoMl":
+      "ML မော်ဒယ် မရသေးပါ — သတင်း/ရာသီဥတု စည်းမျဉ်း ခန့်မှန်းသာ။",
     "market.yangonWeather": "ရန်ကုန် ရာသီဥတု",
     "market.myLocation": "ကျွန်ုပ် တည်နေရာ",
     "market.loading": "ဖတ်နေသည်…",
@@ -177,12 +171,6 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.chartTitle": "ယခင်ဈေးများ (အလယ်ဈေး)",
     "market.chartDataThrough":
       "ပြထားသော အလယ်ဈေးများ — နောက်ဆုံး မှတ်တမ်း နေ့ရက် {date}",
-    "market.forecastFromLatest":
-      "ခန့်မှန်းသည် {date} က အလယ်ဈေးကို အခြေပြု၍ ဖြစ်သည် (နောက်ရက်ခန့် ညွှန်း၊ တရားဝင် ကြေညာချက် မဟုတ်ပါ)။",
-    "market.forecastForDate":
-      "ဤခန့်မှန်းဈေးသည် မနက်ဖြန် ({date}) အတွက် ဖြစ်သည်။",
-    "market.mlUsesLatestDate":
-      "နောက်တစ်ရက် လမ်းညွှန်သည် {date} ထိ မှတ်တမ်းနောက်က နောက်တစ်ရက် ပြောင်းလမ်းကြောင်း ကြည့်သည်။",
     "market.pythonAutoNote":
       "သတင်း/ရာသီဥတု နောက်ခံမှ ထည့်သွင်းပြီး နောက်တစ်ရက် ဈေးပြောင်းနှုန်း (%) ကို ML ဆာဗာသို့ အလိုအလျောက် တောင်းပါသည်။",
     "market.forecastPriceTitle": "ခန့်မှန်း ဈေးနှုန်း",
@@ -192,20 +180,16 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.adviceHold": "ထားပါ (Hold)",
     "market.adviceHoldSub": "မော်ဒယ်အရ ဈေး တက်နိုင်သည် — အရောင်းပိုင်း နှောင့်နှေးပါ။",
     "market.adviceSell": "ရောင်းရှားပါ",
-    "market.adviceSellSub": "ဈေး ကျနိုင်သည် — ရောင်းချဖို့ စဉ်းစားပါ။",
+    "market.adviceSellSub":
+      "ဈေး ကျနိုင်သည် သို့ ပတ်လည်ဈေး အားနည်းနေပါက — ဆုံးရှုံးမှု မများအောင် ရောင်းချဖို့ စဉ်းစားပါ။",
     "market.adviceNeutral": "စောင့်ကြည့်ပါ",
     "market.adviceNeutralSub": "တက်ကျ ပြင်းထန်မှု မထင်ရှားပါ — ဆက်လက် စောင့်ကြည့်ပါ။",
-    "market.adviceDisclaimer":
-      "မော်ဒယ် အကြံပြုချက်သာ — ငွေရေးကြေးရေး အကြံဉာဏ် မဟုတ်ပါ။",
     "market.adviceDetailsToggle": "အကြမ်း အကြောင်း",
     "market.adviceWhySummary":
-      "နောက်ရက်ခန့် ဈေး {pct} လောလားဖော်ပြချက်။ ဤအကြံ့ပြင်းမှု — {strength}။",
+      "「{item}」 အတွက် နောက်ရက်ခန့် ဈေး {pct} လောလားဖော်ပြချက်။ ဤအကြံ့ပြင်းမှု — {strength}။",
     "market.adviceStrengthSoft": "ပြင်းမထန်",
     "market.adviceStrengthMid": "အလယ်",
     "market.adviceStrengthFirm": "ပြင်းထန်",
-    "market.adviceWhyTrust": "မနက်ဖြန် ဈေးကို မည်သူမှ အာမမခံနိုင်ပါ။",
-    "market.adviceWhyInputs":
-      "ယခင်ဈေး၊ သတင်းခေါင်းစဉ်များ၊ ရာသီဥတု တို့ကို စုပေါင်းကြည့်ပါသည်။",
     "market.adviceWhyHeadlines": "ဖတ်ထားသော သတင်းခေါင်းစဉ်အချို့",
     "market.adviceWhyHeadlinesMore": "…နှင့် ခေါင်းစဉ် {n} ခု အခြား",
     "market.adviceWhyWeather": "ယခု ရာသီဥတု — {temp}°C · {condition}",
@@ -282,11 +266,11 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.itemListHint": "Showing {shown} of {total}",
     "market.itemListCap":
       "Only the first 120 rows are listed — type to filter the full sheet.",
-    "market.forecastMlSource":
-      "From Python model: latest sheet mid × (1 + next-day % estimate).",
-    "market.forecastHeuristicSource":
-      "Rule-based estimate (news/weather) while ML is unavailable.",
-    "market.forecastAwaitingMl": "Waiting for ML result…",
+    "market.forecastConfidenceMl":
+      "Model confidence: about {pct}% (rough signal only).",
+    "market.forecastConfidenceLoading": "Estimating model confidence…",
+    "market.forecastConfidenceNoMl":
+      "ML model unavailable — showing a rule-based estimate only.",
     "market.yangonWeather": "Yangon weather",
     "market.myLocation": "My location",
     "market.loading": "Loading…",
@@ -311,11 +295,6 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.chartTitle": "Past prices (midpoint)",
     "market.chartDataThrough":
       "Mid prices shown — last record date: {date}",
-    "market.forecastFromLatest":
-      "This estimate builds on the latest midpoint ({date}); it hints at the next period, not an official quote.",
-    "market.forecastForDate": "This estimated price is for tomorrow ({date}).",
-    "market.mlUsesLatestDate":
-      "Next-day guide looks at movement after your latest price row ({date}).",
     "market.pythonAutoNote":
       "Background news and weather are included when requesting the next-day change (%) from the ML server.",
     "market.forecastPriceTitle": "Estimated price",
@@ -327,21 +306,16 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
       "The model suggests prices may rise — waiting to sell could pay off.",
     "market.adviceSell": "Consider selling",
     "market.adviceSellSub":
-      "The model suggests prices may fall — selling soon may be safer.",
+      "The outlook suggests weaker prices or a down week — selling may limit further losses (not financial advice).",
     "market.adviceNeutral": "Wait and watch",
     "market.adviceNeutralSub":
       "No strong move expected — keep monitoring the market.",
-    "market.adviceDisclaimer":
-      "Model guidance only — not financial advice.",
     "market.adviceDetailsToggle": "Why we suggest this",
     "market.adviceWhySummary":
-      "Roughly {pct} change hinted for the next day. How strong that hint is: {strength}.",
+      "For “{item}”: roughly {pct} next-day move. Strength of this hint: {strength}.",
     "market.adviceStrengthSoft": "Weak",
     "market.adviceStrengthMid": "Medium",
     "market.adviceStrengthFirm": "Strong",
-    "market.adviceWhyTrust": "No one can promise tomorrow’s market price.",
-    "market.adviceWhyInputs":
-      "We blend past prices, news titles, and today’s weather.",
     "market.adviceWhyHeadlines": "Some news titles we looked at",
     "market.adviceWhyHeadlinesMore": "…and {n} more titles",
     "market.adviceWhyWeather": "Weather now — {temp}°C · {condition}",

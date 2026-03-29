@@ -61,11 +61,13 @@ export {
   latestMidpoint,
   latestObservation,
   midPriceMomentumPct,
+  mlNewsHeadlineForItem,
   observationMidsOldestToNewest,
   predictItemPrice,
   recentMidPricesForInference,
   recentMidPricesForMl,
   searchMarketItems,
+  shortMarketItemLabelForUi,
   weatherPriceModifier,
   MARKET_GENERATED_AT_ISO,
   MARKET_ITEMS,
@@ -88,6 +90,7 @@ export {
 export {
   adviceFromMlNextDayPct,
   formatSignedPercent,
+  type AdviceFromMlOptions,
   type RiceMlAdvice,
 } from "./mlAdvice";
 

@@ -59,6 +59,7 @@ Dev-only: custom **Vite middleware** proxies allowed RSS hosts (CORS) via `/api/
 | **NumPy**, **Pandas** | Tabular data & features |
 | **scikit-learn** | Metrics (e.g. MAE), splits |
 | **XGBoost** | Regressor for next-day **%** price change; model file `backend/models/rice_xgb.json` |
+| **Lexical news features** (`nf_*` in `backend/news_features.py`) | Counts of oil/energy, transport, policy, ag, weather, and up/down price words in `news_headline` (same text at train & inference) |
 | **PyTorch** | Backend for **Transformers** |
 | **Hugging Face Transformers** | **ClimateBERT** embeddings / optional sentiment head (`backend/sentiment.py`) |
 | **Optional: `timesfm`** | Google TimesFM for extra series features; if missing, **statistical fallback** (`backend/timesfm_features.py`) |
@@ -120,6 +121,9 @@ Dev-only: custom **Vite middleware** proxies allowed RSS hosts (CORS) via `/api/
 | `npm run market:train` | Train XGBoost from CSV (mock sentiment) |
 | `npm run ml:backtest` | Walk-forward backtest on full CSV (more stable metrics) |
 | `npm run ml:backtest:window` | Fixed train/test date window (small *n*, noisy) |
+| `npm run ml:news-report` | Pearson *r* of sentiment + `nf_*` vs next-day % on `rice_data.csv` |
+
+After changing headlines or feature schema, run `python scripts/xlsx_to_market.py` (or `npm run market:sync`) then **`npm run market:train`** so `rice_xgb.json` matches the API feature vector.
 
 ## Disclaimer
 
