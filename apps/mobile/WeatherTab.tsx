@@ -6,6 +6,7 @@ import {
   findNearestPlace,
   weatherCodeLabelLocale,
 } from "@agriora/core";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,13 +18,8 @@ import {
   View,
 } from "react-native";
 import { useI18n } from "./LocaleContext";
+import { theme } from "./theme";
 import { resolveCoordsForWeather } from "./weatherLocation";
-
-const bg = "#0c120f";
-const fg = "#e6ede8";
-const muted = "rgba(230, 237, 232, 0.55)";
-const accent = "#5cb87a";
-const surface = "#141c17";
 
 type Row = {
   place: MyanmarPlace;
@@ -122,7 +118,10 @@ export function WeatherTab({ isActive }: { isActive: boolean }) {
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
     >
-      <Text style={styles.pageTitle}>{t("weather.title")}</Text>
+      <View style={styles.titleRow}>
+        <Ionicons name="partly-sunny-outline" size={28} color={theme.accent} />
+        <Text style={styles.pageTitle}>{t("weather.title")}</Text>
+      </View>
       <Text style={styles.hint}>{t("weather.hintMobile")}</Text>
 
       <Pressable
@@ -131,9 +130,12 @@ export function WeatherTab({ isActive }: { isActive: boolean }) {
         disabled={locLoading}
       >
         {locLoading ? (
-          <ActivityIndicator color={bg} />
+          <ActivityIndicator color={theme.onAccent} />
         ) : (
-          <Text style={styles.btnText}>{t("weather.useLocation")}</Text>
+          <View style={styles.btnInner}>
+            <Ionicons name="navigate-outline" size={22} color={theme.onAccent} />
+            <Text style={styles.btnText}>{t("weather.useLocation")}</Text>
+          </View>
         )}
       </Pressable>
 
@@ -163,13 +165,18 @@ export function WeatherTab({ isActive }: { isActive: boolean }) {
 
       <View style={styles.rowBetween}>
         <Text style={styles.sectionTitle}>{t("weather.allRegions")}</Text>
-        <Pressable onPress={() => void loadAllRegions()} disabled={loadingList}>
+        <Pressable
+          onPress={() => void loadAllRegions()}
+          disabled={loadingList}
+          style={styles.refreshBtn}
+        >
+          <Ionicons name="refresh-outline" size={18} color={theme.accent} />
           <Text style={styles.link}>{t("weather.refresh")}</Text>
         </Pressable>
       </View>
 
       {loadingList && rows.length === 0 && (
-        <ActivityIndicator color={accent} style={{ marginVertical: 16 }} />
+        <ActivityIndicator color={theme.accent} style={{ marginVertical: 16 }} />
       )}
 
       {rows.map(({ place, weather, error }) => (
@@ -192,7 +199,7 @@ export function WeatherTab({ isActive }: { isActive: boolean }) {
           ) : error ? (
             <Text style={styles.err}>{error}</Text>
           ) : (
-            <ActivityIndicator color={accent} />
+            <ActivityIndicator color={theme.accent} />
           )}
         </View>
       ))}
@@ -203,60 +210,76 @@ export function WeatherTab({ isActive }: { isActive: boolean }) {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 32 },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: fg,
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     marginBottom: 8,
   },
-  hint: { color: muted, fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.fg,
+    flex: 1,
+  },
+  hint: {
+    color: theme.fgMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
   btn: {
-    backgroundColor: accent,
-    paddingVertical: 14,
+    backgroundColor: theme.accent,
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     marginBottom: 16,
+    minHeight: 52,
+    justifyContent: "center",
   },
   btnDisabled: { opacity: 0.7 },
-  btnText: { color: bg, fontWeight: "700", fontSize: 16 },
+  btnInner: { flexDirection: "row", alignItems: "center", gap: 10 },
+  btnText: { color: theme.onAccent, fontWeight: "700", fontSize: 17 },
   card: {
-    backgroundColor: surface,
+    backgroundColor: theme.surface,
     borderRadius: 14,
-    padding: 14,
+    padding: 16,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: theme.border,
   },
   cardHighlight: {
-    borderColor: "rgba(92, 184, 122, 0.35)",
+    borderColor: theme.accentBorder,
+    borderWidth: 2,
     marginBottom: 18,
   },
   cardTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: accent,
+    color: theme.accent,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   bigTemp: {
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: "700",
-    color: fg,
+    color: theme.fg,
   },
-  cond: { fontSize: 16, color: fg, marginBottom: 6 },
-  meta: { fontSize: 13, color: muted },
-  metaDim: { fontSize: 12, color: muted, marginTop: 4 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: fg },
+  cond: { fontSize: 17, color: theme.fg, marginBottom: 6 },
+  meta: { fontSize: 14, color: theme.fgMuted },
+  metaDim: { fontSize: 13, color: theme.fgMuted, marginTop: 4 },
+  sectionTitle: { fontSize: 17, fontWeight: "700", color: theme.fg },
   rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
   },
-  link: { color: accent, fontWeight: "600", fontSize: 14 },
-  placeName: { fontSize: 17, fontWeight: "700", color: fg },
-  region: { fontSize: 12, color: muted, marginBottom: 6 },
-  temp: { fontSize: 15, color: fg },
-  err: { color: "#e89880", fontSize: 13 },
+  refreshBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+  link: { color: theme.accent, fontWeight: "700", fontSize: 15 },
+  placeName: { fontSize: 18, fontWeight: "700", color: theme.fg },
+  region: { fontSize: 13, color: theme.fgMuted, marginBottom: 6 },
+  temp: { fontSize: 16, color: theme.fg },
+  err: { color: theme.warn, fontSize: 14 },
 });

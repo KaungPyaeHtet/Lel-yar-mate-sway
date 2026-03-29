@@ -13,6 +13,7 @@ import {
   MARKET_GENERATED_AT_ISO,
   MARKET_ITEMS,
 } from "@agriora/core";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
 import {
   Pressable,
@@ -23,13 +24,8 @@ import {
   View,
 } from "react-native";
 import { useI18n } from "./LocaleContext";
+import { theme } from "./theme";
 import { resolveCoordsForWeather } from "./weatherLocation";
-
-const bg = "#0c120f";
-const fg = "#e6ede8";
-const muted = "rgba(230, 237, 232, 0.55)";
-const accent = "#5cb87a";
-const surface = "#141c17";
 
 function formatMmks(n: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
@@ -121,7 +117,10 @@ export function MarketTab() {
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.pageTitle}>{t("market.title")}</Text>
+      <View style={styles.titleRow}>
+        <Ionicons name="storefront-outline" size={28} color={theme.accent} />
+        <Text style={styles.pageTitle}>{t("market.title")}</Text>
+      </View>
       <Text style={styles.hint}>
         {tf("market.hint", {
           count: MARKET_ITEMS.length,
@@ -132,7 +131,7 @@ export function MarketTab() {
       <TextInput
         style={styles.search}
         placeholder={t("market.searchPlaceholder")}
-        placeholderTextColor="rgba(230,237,232,0.35)"
+        placeholderTextColor={theme.placeholder}
         value={query}
         onChangeText={setQuery}
       />
@@ -169,16 +168,24 @@ export function MarketTab() {
               disabled={weatherLoading}
               onPress={() => void loadYangonWeather()}
             >
-              <Text style={styles.btnSecText}>
-                {weatherLoading ? t("market.loading") : t("market.yangonWeather")}
-              </Text>
+              <View style={styles.btnSecInner}>
+                <Ionicons name="business-outline" size={20} color={theme.accent} />
+                <Text style={styles.btnSecText}>
+                  {weatherLoading
+                    ? t("market.loading")
+                    : t("market.yangonWeather")}
+                </Text>
+              </View>
             </Pressable>
             <Pressable
               style={[styles.btnSec, weatherLoading && styles.btnDisabled]}
               disabled={weatherLoading}
               onPress={() => void handleMyLocationWeather()}
             >
-              <Text style={styles.btnSecText}>{t("market.myLocation")}</Text>
+              <View style={styles.btnSecInner}>
+                <Ionicons name="location-outline" size={20} color={theme.accent} />
+                <Text style={styles.btnSecText}>{t("market.myLocation")}</Text>
+              </View>
             </Pressable>
           </View>
           {weatherLabel ? (
@@ -189,7 +196,7 @@ export function MarketTab() {
           <TextInput
             style={styles.input}
             placeholder={t("market.newsPlaceholder")}
-            placeholderTextColor="rgba(230,237,232,0.35)"
+            placeholderTextColor={theme.placeholder}
             multiline
             value={news}
             onChangeText={setNews}
@@ -238,103 +245,136 @@ export function MarketTab() {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 32 },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: fg,
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     marginBottom: 8,
   },
-  hint: { color: muted, fontSize: 14, lineHeight: 20, marginBottom: 12 },
-  hintTight: { color: muted, fontSize: 13, lineHeight: 18, marginBottom: 8 },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.fg,
+    flex: 1,
+  },
+  hint: {
+    color: theme.fgMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  hintTight: {
+    color: theme.fgMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
   search: {
-    backgroundColor: surface,
+    backgroundColor: theme.surface,
     borderRadius: 12,
-    padding: 12,
-    color: fg,
+    padding: 14,
+    fontSize: 16,
+    color: theme.fg,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: theme.border,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: 8,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
+    borderBottomColor: theme.border,
   },
-  rowActive: { backgroundColor: "rgba(92, 184, 122, 0.12)" },
-  rowTitle: { flex: 1, color: fg, fontSize: 14, lineHeight: 20 },
-  rowMeta: { color: accent, fontSize: 13, fontWeight: "600" },
+  rowActive: { backgroundColor: theme.accentSoft },
+  rowTitle: { flex: 1, color: theme.fg, fontSize: 16, lineHeight: 22 },
+  rowMeta: { color: theme.price, fontSize: 15, fontWeight: "700" },
   card: {
     marginTop: 16,
-    backgroundColor: surface,
+    backgroundColor: theme.surface,
     borderRadius: 14,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: theme.border,
   },
   resultLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
-    color: muted,
+    color: theme.fgMuted,
     textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     marginBottom: 6,
   },
   detailTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
-    color: fg,
-    lineHeight: 22,
+    color: theme.fg,
+    lineHeight: 24,
     marginBottom: 6,
   },
-  meta: { color: muted, fontSize: 13, marginBottom: 12, lineHeight: 18 },
+  meta: {
+    color: theme.fgMuted,
+    fontSize: 14,
+    marginBottom: 12,
+    lineHeight: 20,
+  },
   weatherRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   btnSec: {
     flex: 1,
-    backgroundColor: "rgba(92, 184, 122, 0.2)",
+    backgroundColor: theme.accentSoft,
     paddingVertical: 12,
+    paddingHorizontal: 8,
     borderRadius: 12,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.accentBorder,
   },
-  btnSecText: { color: "#7dd89a", fontWeight: "700", fontSize: 14 },
+  btnSecInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  btnSecText: { color: theme.accent, fontWeight: "700", fontSize: 14 },
   btnDisabled: { opacity: 0.5 },
   input: {
-    backgroundColor: bg,
+    backgroundColor: theme.surfaceAlt,
     borderRadius: 12,
-    padding: 12,
-    color: fg,
+    padding: 14,
+    fontSize: 15,
+    color: theme.fg,
     minHeight: 100,
     textAlignVertical: "top",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: theme.border,
     marginBottom: 12,
   },
   prediction: {
     marginTop: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
+    borderTopColor: theme.border,
   },
   predMid: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#7dd89a",
+    color: theme.price,
     marginBottom: 6,
   },
   factor: {
-    color: "rgba(230,237,232,0.75)",
-    fontSize: 13,
-    lineHeight: 20,
+    color: theme.fg,
+    fontSize: 14,
+    lineHeight: 22,
     marginTop: 8,
+    opacity: 0.92,
   },
   disclaimer: {
     marginTop: 12,
-    fontSize: 12,
-    lineHeight: 17,
-    color: "rgba(230,237,232,0.45)",
+    fontSize: 13,
+    lineHeight: 18,
+    color: theme.fgMuted,
   },
 });

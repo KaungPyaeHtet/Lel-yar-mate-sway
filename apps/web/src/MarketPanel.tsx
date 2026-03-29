@@ -15,6 +15,7 @@ import {
 } from "@agriora/core";
 import { useMemo, useState } from "react";
 import { BROWSER_GEO_OPTIONS, canUseBrowserGeolocation } from "./browserGeo";
+import { IconCity, IconLocationPin, IconMarket } from "./icons";
 import { useI18n } from "./LocaleContext";
 
 function formatMmks(n: number) {
@@ -115,7 +116,10 @@ export function MarketPanel() {
 
   return (
     <div className="panel market-panel">
-      <h2 className="page-title">{t("market.title")}</h2>
+      <div className="page-title-row">
+        <IconMarket className="panel-icon" aria-hidden />
+        <h2 className="page-title">{t("market.title")}</h2>
+      </div>
       <p className="hint">
         {tf("market.hint", {
           count: MARKET_ITEMS.length,
@@ -170,6 +174,7 @@ export function MarketPanel() {
               disabled={weatherLoading}
               onClick={() => void loadYangonWeather()}
             >
+              <IconCity className="chip-icon" aria-hidden />
               {weatherLoading ? t("market.loading") : t("market.yangonWeather")}
             </button>
             <button
@@ -178,6 +183,7 @@ export function MarketPanel() {
               disabled={weatherLoading}
               onClick={handleMyLocationWeather}
             >
+              <IconLocationPin className="chip-icon" aria-hidden />
               {t("market.myLocation")}
             </button>
           </div>

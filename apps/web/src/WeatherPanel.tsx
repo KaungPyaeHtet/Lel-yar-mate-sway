@@ -8,6 +8,7 @@ import {
 } from "@agriora/core";
 import { useCallback, useEffect, useState } from "react";
 import { BROWSER_GEO_OPTIONS, canUseBrowserGeolocation } from "./browserGeo";
+import { IconLocationPin, IconRefresh, IconWeather } from "./icons";
 import { useI18n } from "./LocaleContext";
 
 type Row = {
@@ -107,7 +108,10 @@ export function WeatherPanel({ isActive }: { isActive: boolean }) {
 
   return (
     <div className="panel weather-panel">
-      <h2 className="page-title">{t("weather.title")}</h2>
+      <div className="page-title-row">
+        <IconWeather className="panel-icon" aria-hidden />
+        <h2 className="page-title">{t("weather.title")}</h2>
+      </div>
       <p className="hint">
         {t("weather.hintWeb")}{" "}
         <a
@@ -127,6 +131,7 @@ export function WeatherPanel({ isActive }: { isActive: boolean }) {
         onClick={handleMyLocation}
         disabled={locLoading}
       >
+        <IconLocationPin className="chip-icon" aria-hidden />
         {locLoading
           ? t("weather.gettingLocation")
           : t("weather.useLocation")}
@@ -166,6 +171,7 @@ export function WeatherPanel({ isActive }: { isActive: boolean }) {
           onClick={() => void loadAllRegions()}
           disabled={loadingList}
         >
+          <IconRefresh className="chip-icon" aria-hidden />
           {t("weather.refresh")}
         </button>
       </div>

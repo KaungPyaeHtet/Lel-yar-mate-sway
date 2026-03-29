@@ -98,9 +98,8 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "tab.weather": "ရာသီဥတု",
     "tab.news": "သတင်း",
     "tab.settings": "ချိန်ညှိမှု",
-    "home.tag":
-      "ဟက်ခါသန်း အက်ပ် — ဝဘ်နှင့် မိုဘိုင်းတွင် @agriora/core သုံးထားသည်။",
-    "home.pill": "အင်တာနက်မဲ့ စည်းမျဉ်း",
+    "home.tag": "",
+    "home.pill": "",
     "settings.title": "ချိန်ညှိမှု",
     "settings.languageTitle": "ဘာသာစကား",
     "settings.languageMy": "မြန်မာ",

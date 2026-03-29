@@ -7,6 +7,14 @@ import {
   type Verdict,
 } from "@agriora/core";
 import { useCallback, useEffect, useState } from "react";
+import {
+  IconAirplane,
+  IconChart,
+  IconFlagSimple,
+  IconGlobeSimple,
+  IconNews,
+  IconRefresh,
+} from "./icons";
 import { useI18n } from "./LocaleContext";
 
 function formatWhen(ms: number, locale: "my" | "en") {
@@ -59,16 +67,22 @@ export function NewsPanel({ isActive }: { isActive: boolean }) {
     if (isActive) void load();
   }, [isActive, load]);
 
-  const chips: { id: NewsFilter; key: "news.filterAll" | "news.filterMyanmar" | "news.filterIntl" }[] =
-    [
-      { id: "all", key: "news.filterAll" },
-      { id: "myanmar", key: "news.filterMyanmar" },
-      { id: "international", key: "news.filterIntl" },
-    ];
+  const chips: {
+    id: NewsFilter;
+    key: "news.filterAll" | "news.filterMyanmar" | "news.filterIntl";
+    Icon: typeof IconGlobeSimple;
+  }[] = [
+    { id: "all", key: "news.filterAll", Icon: IconGlobeSimple },
+    { id: "myanmar", key: "news.filterMyanmar", Icon: IconFlagSimple },
+    { id: "international", key: "news.filterIntl", Icon: IconAirplane },
+  ];
 
   return (
     <div className="panel news-panel">
-      <h2 className="page-title">{t("news.title")}</h2>
+      <div className="page-title-row">
+        <IconNews className="panel-icon" aria-hidden />
+        <h2 className="page-title">{t("news.title")}</h2>
+      </div>
       <p className="hint">{t("news.hint")}</p>
 
       <div
@@ -76,7 +90,7 @@ export function NewsPanel({ isActive }: { isActive: boolean }) {
         role="tablist"
         aria-label={t("news.filterAria")}
       >
-        {chips.map(({ id, key }) => (
+        {chips.map(({ id, key, Icon }) => (
           <button
             key={id}
             type="button"
@@ -85,6 +99,7 @@ export function NewsPanel({ isActive }: { isActive: boolean }) {
             aria-selected={filter === id}
             onClick={() => setFilter(id)}
           >
+            <Icon className="chip-icon" aria-hidden />
             {t(key)}
           </button>
         ))}
@@ -97,6 +112,7 @@ export function NewsPanel({ isActive }: { isActive: boolean }) {
           disabled={loading}
           onClick={() => void load()}
         >
+          <IconRefresh className="chip-icon" aria-hidden />
           {loading ? t("news.loadingHeadlines") : t("news.refresh")}
         </button>
       </div>
@@ -156,6 +172,7 @@ export function NewsPanel({ isActive }: { isActive: boolean }) {
         className="btn"
         onClick={() => setResult(analyzeWithRules(paragraph))}
       >
+        <IconChart className="chip-icon" aria-hidden />
         {t("news.estimate")}
       </button>
       {result && result.rows.length > 0 && (

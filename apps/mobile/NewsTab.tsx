@@ -6,7 +6,8 @@ import {
   type NewsHeadline,
   type Verdict,
 } from "@agriora/core";
-import { useCallback, useEffect, useState } from "react";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useCallback, useEffect, useState, type ComponentProps } from "react";
 import {
   Linking,
   Pressable,
@@ -17,12 +18,7 @@ import {
   View,
 } from "react-native";
 import { useI18n } from "./LocaleContext";
-
-const fg = "#e6ede8";
-const muted = "rgba(230, 237, 232, 0.55)";
-const accent = "#5cb87a";
-const surface = "#141c17";
-const bg = "#0c120f";
+import { theme } from "./theme";
 
 function formatWhen(ms: number, locale: "my" | "en") {
   if (!ms) return "";
@@ -77,10 +73,11 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
   const chips: {
     id: NewsFilter;
     key: "news.filterAll" | "news.filterMyanmar" | "news.filterIntl";
+    icon: ComponentProps<typeof Ionicons>["name"];
   }[] = [
-    { id: "all", key: "news.filterAll" },
-    { id: "myanmar", key: "news.filterMyanmar" },
-    { id: "international", key: "news.filterIntl" },
+    { id: "all", key: "news.filterAll", icon: "earth-outline" },
+    { id: "myanmar", key: "news.filterMyanmar", icon: "flag-outline" },
+    { id: "international", key: "news.filterIntl", icon: "globe-outline" },
   ];
 
   return (
@@ -89,21 +86,31 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.pageTitle}>{t("news.title")}</Text>
+      <View style={styles.titleRow}>
+        <Ionicons name="newspaper-outline" size={28} color={theme.accent} />
+        <Text style={styles.pageTitle}>{t("news.title")}</Text>
+      </View>
       <Text style={styles.hint}>{t("news.hint")}</Text>
 
       <View style={styles.chipRow}>
-        {chips.map(({ id, key }) => (
+        {chips.map(({ id, key, icon }) => (
           <Pressable
             key={id}
             style={[styles.chip, filter === id && styles.chipActive]}
             onPress={() => setFilter(id)}
           >
-            <Text
-              style={[styles.chipText, filter === id && styles.chipTextActive]}
-            >
-              {t(key)}
-            </Text>
+            <View style={styles.chipInner}>
+              <Ionicons
+                name={icon}
+                size={16}
+                color={filter === id ? theme.onAccent : theme.chipInactiveFg}
+              />
+              <Text
+                style={[styles.chipText, filter === id && styles.chipTextActive]}
+              >
+                {t(key)}
+              </Text>
+            </View>
           </Pressable>
         ))}
       </View>
@@ -113,6 +120,7 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
         disabled={loading}
         onPress={() => void load()}
       >
+        <Ionicons name="refresh-outline" size={18} color={theme.accent} />
         <Text style={styles.refreshText}>
           {loading ? t("news.loadingHeadlines") : t("news.refresh")}
         </Text>
@@ -151,7 +159,7 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
       <TextInput
         style={styles.input}
         placeholder={t("news.placeholder")}
-        placeholderTextColor="rgba(230,237,232,0.35)"
+        placeholderTextColor={theme.placeholder}
         multiline
         value={paragraph}
         onChangeText={setParagraph}
@@ -160,7 +168,10 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
         style={styles.btn}
         onPress={() => setResult(analyzeWithRules(paragraph))}
       >
-        <Text style={styles.btnText}>{t("news.estimate")}</Text>
+        <View style={styles.btnInner}>
+          <Ionicons name="analytics-outline" size={22} color={theme.onAccent} />
+          <Text style={styles.btnText}>{t("news.estimate")}</Text>
+        </View>
       </Pressable>
 
       {result && result.rows.length > 0 && (
@@ -203,99 +214,135 @@ export function NewsTab({ isActive }: { isActive: boolean }) {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 32 },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: fg,
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     marginBottom: 8,
   },
-  hint: { color: muted, fontSize: 14, lineHeight: 20, marginBottom: 12 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.fg,
+    flex: 1,
+  },
+  hint: {
+    color: theme.fgMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10,
+  },
   chip: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 999,
-    backgroundColor: surface,
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: theme.border,
   },
   chipActive: {
-    backgroundColor: accent,
-    borderColor: accent,
+    backgroundColor: theme.accent,
+    borderColor: theme.accent,
   },
-  chipText: { fontSize: 13, fontWeight: "600", color: "rgba(230,237,232,0.85)" },
-  chipTextActive: { color: bg },
-  refresh: { alignSelf: "flex-start", marginBottom: 10 },
-  refreshText: { color: accent, fontWeight: "600", fontSize: 15 },
-  err: { color: "#e89880", marginBottom: 10, fontSize: 14 },
+  chipInner: { flexDirection: "row", alignItems: "center", gap: 6 },
+  chipText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.chipInactiveFg,
+  },
+  chipTextActive: { color: theme.onAccent },
+  refresh: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    marginBottom: 10,
+  },
+  refreshText: { color: theme.accent, fontWeight: "700", fontSize: 15 },
+  err: { color: theme.warn, marginBottom: 10, fontSize: 15 },
   newsItem: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
+    borderBottomColor: theme.border,
   },
   newsTitle: {
-    color: "#7dd89a",
-    fontSize: 15,
-    fontWeight: "600",
+    color: theme.link,
+    fontSize: 16,
+    fontWeight: "700",
     lineHeight: 24,
   },
   newsMeta: {
     marginTop: 6,
-    fontSize: 12,
-    color: muted,
-    lineHeight: 17,
+    fontSize: 13,
+    color: theme.fgMuted,
+    lineHeight: 18,
   },
   useLink: {
     marginTop: 6,
-    color: accent,
-    fontSize: 13,
-    fontWeight: "600",
+    color: theme.accent,
+    fontSize: 14,
+    fontWeight: "700",
   },
   subheading: {
     marginTop: 20,
     marginBottom: 6,
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700",
-    color: fg,
+    color: theme.fg,
   },
   input: {
-    backgroundColor: surface,
+    backgroundColor: theme.surface,
     borderRadius: 12,
-    padding: 12,
-    color: fg,
+    padding: 14,
+    fontSize: 15,
+    color: theme.fg,
     minHeight: 120,
     textAlignVertical: "top",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: theme.border,
     marginBottom: 12,
   },
   btn: {
-    backgroundColor: accent,
-    paddingVertical: 14,
+    backgroundColor: theme.accent,
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     marginBottom: 16,
+    minHeight: 52,
+    justifyContent: "center",
   },
-  btnText: { color: bg, fontWeight: "700", fontSize: 16 },
+  btnInner: { flexDirection: "row", alignItems: "center", gap: 10 },
+  btnText: { color: theme.onAccent, fontWeight: "700", fontSize: 17 },
   card: {
-    backgroundColor: surface,
+    backgroundColor: theme.surface,
     borderRadius: 14,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: theme.border,
   },
   resultLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
-    color: muted,
+    color: theme.fgMuted,
     textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     marginBottom: 6,
   },
-  resultMain: { fontSize: 20, fontWeight: "700", color: fg, marginBottom: 8 },
-  up: { color: "#7dd89a" },
-  down: { color: "#e89880" },
-  meta: { color: muted, fontSize: 13, marginBottom: 12 },
-  rowLine: { color: fg, fontSize: 13, marginBottom: 10 },
-  rowSub: { color: muted, fontSize: 12 },
+  resultMain: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: theme.fg,
+    marginBottom: 8,
+  },
+  up: { color: theme.success },
+  down: { color: theme.warn },
+  meta: { color: theme.fgMuted, fontSize: 14, marginBottom: 12 },
+  rowLine: { color: theme.fg, fontSize: 14, marginBottom: 10 },
+  rowSub: { color: theme.fgMuted, fontSize: 13 },
 });
