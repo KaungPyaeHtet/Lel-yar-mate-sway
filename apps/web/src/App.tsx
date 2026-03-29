@@ -27,7 +27,6 @@ const tabIcons = {
 function AppShell() {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("home");
-  const homeTag = t("home.tag");
   const homePill = t("home.pill");
 
   const tabbarTabs: { id: Tab; labelKey: AppStringKey }[] = [
@@ -51,7 +50,6 @@ function AppShell() {
                 decoding="async"
               />
             </h1>
-            {homeTag ? <p className="tag">{homeTag}</p> : null}
             {homePill ? <span className="pill">{homePill}</span> : null}
             <div className="home-quick-actions">
               <button

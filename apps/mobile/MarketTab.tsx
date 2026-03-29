@@ -18,8 +18,6 @@ import {
   recentMidPricesForMl,
   riceMidSeriesForChart,
   riceNewsContextToLines,
-  RICE_MARKET_SHEET_GENERATED_AT_ISO,
-  RICE_MARKET_USES_SEED_DATA,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
 } from "@agriora/core";
@@ -363,13 +361,6 @@ export function MarketTab() {
         <Ionicons name="storefront-outline" size={28} color={theme.accent} />
         <Text style={styles.pageTitle}>{t("market.title")}</Text>
       </View>
-      <Text style={styles.hint}>
-        {tf("market.hint", { generated: RICE_MARKET_SHEET_GENERATED_AT_ISO })}
-      </Text>
-      <Text style={styles.hintTight}>{t("market.autoHint")}</Text>
-      {RICE_MARKET_USES_SEED_DATA ? (
-        <Text style={styles.riceSeedNote}>{t("market.riceSeedNote")}</Text>
-      ) : null}
 
       <View style={styles.card}>
         <Text style={styles.resultLabel}>{t("market.selected")}</Text>
@@ -460,22 +451,10 @@ const styles = StyleSheet.create({
     color: theme.fg,
     flex: 1,
   },
-  hint: {
-    color: theme.fgMuted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 8,
-  },
   hintTight: {
     color: theme.fgMuted,
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 10,
-  },
-  riceSeedNote: {
-    color: "rgba(200, 220, 205, 0.85)",
-    fontSize: 13,
-    lineHeight: 19,
     marginBottom: 10,
   },
   chartBlock: { marginBottom: 12 },

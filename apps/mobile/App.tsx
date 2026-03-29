@@ -23,7 +23,6 @@ const tabIcons: Record<Tab, ComponentProps<typeof Ionicons>["name"]> = {
 function AppShell() {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("home");
-  const homeTag = t("home.tag");
   const homePill = t("home.pill");
 
   const tabbarTabs: { id: Tab; labelKey: AppStringKey }[] = [
@@ -38,13 +37,9 @@ function AppShell() {
       <View style={styles.main}>
         {tab === "home" && (
           <View style={styles.center}>
-            <Image
-              source={require("./assets/agriora-logo.png")}
-              style={styles.logoImg}
-              accessibilityLabel="Agriora"
-              accessibilityRole="image"
-            />
-            {homeTag ? <Text style={styles.tag}>{homeTag}</Text> : null}
+            <View style={styles.logoWrap}>
+              <AgrioraLogo width={280} />
+            </View>
             {homePill ? (
               <View style={styles.pill}>
                 <Text style={styles.pillText}>{homePill}</Text>
@@ -142,17 +137,10 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   logoImg: {
-    width: 220,
-    height: 220,
+    width: 236,
+    height: 236,
     resizeMode: "contain",
     marginBottom: 4,
-  },
-  tag: {
-    marginTop: 14,
-    color: theme.fgMuted,
-    textAlign: "center",
-    lineHeight: 24,
-    fontSize: 16,
   },
   pill: {
     marginTop: 20,

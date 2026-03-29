@@ -17,7 +17,6 @@ export type AppStringKey =
   | "tab.weather"
   | "tab.news"
   | "tab.settings"
-  | "home.tag"
   | "home.pill"
   | "settings.title"
   | "settings.languageTitle"
@@ -26,7 +25,6 @@ export type AppStringKey =
   | "about.title"
   | "about.body"
   | "market.title"
-  | "market.hint"
   | "market.searchPlaceholder"
   | "market.searchAria"
   | "market.itemsAria"
@@ -51,9 +49,6 @@ export type AppStringKey =
   | "market.mlBackendNeedHistory"
   | "market.mlBackendNoUrl"
   | "market.chartTitle"
-  | "market.riceSeedNote"
-  | "market.autoHint"
-  | "market.pythonAutoNote"
   | "market.forecastPriceTitle"
   | "market.weatherFallback"
   | "market.adviceTitle"
@@ -119,8 +114,6 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "tab.weather": "ရာသီဥတု",
     "tab.news": "သတင်း",
     "tab.settings": "ချိန်ညှိမှု",
-    "home.tag":
-      "သတင်းမဖတ်ဖြစ်သော စိုက်ပျိုးရှင်များအတွက် သတင်းနှင့် ဈေးလမ်းကြောင်း ခန့်မှန်းချက်။",
     "home.pill": "",
     "settings.title": "ချိန်ညှိမှု",
     "settings.languageTitle": "ဘာသာစကား",
@@ -130,8 +123,6 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "about.body":
       "ကျွန်ုပ်တို့သည် မြန်မာ စိုက်ပျိုးရှင်များ အတွက် Agriora အဖွဲ့ဖြစ်ပါသည်။\n\nစိုက်ပျိုးရှင်အများစုမှာ နေ့စဉ် စျေးကွက် သတင်းများ သို့မဟုတ် ကမ္ဘာ့ကုန်ဈေး သတင်းများကို မဖတ်ဖြစ်ကြပါ။ သို့သော် ထိုသတင်းများက ဈေးနှုန်း တက်ခြင်း သို့ ကျခြင်းနှင့် ဆက်နွယ်နေတတ်ပါသည်။\n\nAgriora သည် သတင်းများကို စုစည်းကာ ခန့်မှန်းချက်နှင့် ပေါင်းစပ်၍ ဈေးလမ်းကြောင်း ပြသပေးပါသည်။ သတင်းမဖတ်ဖြစ်သော်လည်း ဈေးအပြောင်းအလဲကို ကြိုတင်သိရှိပြီး ရောင်းဝယ်ချိန်ကို ပိုကောင်းအောင် စီစဉ်နိုင်စေရန်၊ စိုက်ပျိုးသူများ အကျိုးအမြတ် ရရှိရေး ကူညီပေးရန် ရည်ရွယ်ပါသည်။",
     "market.title": "စပါးဈေး ဈေးနှုန်းများ",
-    "market.hint":
-      "မှီငြမ်း စပါးဈေး တစ်မျိုးသာ။ အလယ်ဈေး မှတ်တမ်း ({generated})။",
     "market.searchPlaceholder": "စပါး အမျိုးအစား ရှာရန်…",
     "market.searchAria": "စပါး ရှာရန်",
     "market.itemsAria": "စပါး စာရင်း",
@@ -160,12 +151,6 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.mlBackendNoUrl":
       "ML API မတွေ့ပါ။ npm run ml:api ဖွင့်ပြီး ဝဘ်ကို ပြန်စတင်ပါ (သို့ .env မှာ VITE_ML_API_URL ထည့်ပါ)။",
     "market.chartTitle": "ယခင်ဈေးများ (အလယ်ဈေး)",
-    "market.riceSeedNote":
-      "data.xlsx တွင် စပါးစာကြောင်း မတွေ့သေးပါ — ပြသချက်အတွက် စပါးနမူနာ ဈေးတွဲကို သုံးထားသည်။ စပါးထည့်ပြီး script ပြန်တင်ပါ။",
-    "market.autoHint":
-      "သတင်းနှင့် ရာသီဥတုကို မျက်နှာပြင်တွင် မပြဘဲ နောက်ခံတွင် သုံးပါသည် — ခန့်မှန်းချက် နှင့် ML မော်ဒယ်အတွက်။",
-    "market.pythonAutoNote":
-      "သတင်း/ရာသီဥတု နောက်ခံမှ ထည့်သွင်းပြီး နောက်တစ်ရက် ဈေးပြောင်းနှုန်း (%) ကို ML ဆာဗာသို့ အလိုအလျောက် တောင်းပါသည်။",
     "market.forecastPriceTitle": "ခန့်မှန်း ဈေးနှုန်း",
     "market.weatherFallback":
       "တည်နေရာ မရရှိပါ — ရန်ကုန် ရာသီဥတု သုံးထားသည်",
@@ -247,8 +232,6 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "tab.weather": "Weather",
     "tab.news": "News",
     "tab.settings": "Settings",
-    "home.tag":
-      "News and forecasts for growers — clearer prices even when you miss the headlines.",
     "home.pill": "Offline-first rules",
     "settings.title": "Settings",
     "settings.languageTitle": "Language",
@@ -258,8 +241,6 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "about.body":
       "We are Team Agriora — a team building for Myanmar’s farmers.\n\nMany growers do not read market and commodity news every day. Those stories still carry signals about whether prices may rise or fall.\n\nAgriora gathers relevant headlines, combines them with price trends and weather, and shows a simple forecast direction. Our goal is to help farmers plan buying and selling even when they miss the news — so they can spot opportunities and improve returns.",
     "market.title": "Rice market prices",
-    "market.hint":
-      "Single reference rice series. Mid-price history ({generated}).",
     "market.searchPlaceholder": "Search rice types…",
     "market.searchAria": "Search rice items",
     "market.itemsAria": "Rice items",
@@ -287,12 +268,6 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.mlBackendNoUrl":
       "ML API URL unavailable. Run npm run ml:api and restart the web app, or set VITE_ML_API_URL.",
     "market.chartTitle": "Past prices (midpoint)",
-    "market.riceSeedNote":
-      "No rice rows in data.xlsx yet — showing demo rice series on the same dates. Add rice rows and re-run xlsx_to_market.py.",
-    "market.autoHint":
-      "Headlines and weather are not shown here — they load in the background for the price estimate and ML model.",
-    "market.pythonAutoNote":
-      "Background news and weather are included when requesting the next-day change (%) from the ML server.",
     "market.forecastPriceTitle": "Estimated price",
     "market.weatherFallback":
       "Location unavailable — using Yangon weather",

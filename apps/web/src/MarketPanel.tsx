@@ -17,8 +17,6 @@ import {
   recentMidPricesForMl,
   riceMidSeriesForChart,
   riceNewsContextToLines,
-  RICE_MARKET_SHEET_GENERATED_AT_ISO,
-  RICE_MARKET_USES_SEED_DATA,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
 } from "@agriora/core";
@@ -253,13 +251,6 @@ export function MarketPanel() {
         <IconMarket className="panel-icon" aria-hidden />
         <h2 className="page-title">{t("market.title")}</h2>
       </div>
-      <p className="hint">
-        {tf("market.hint", { generated: RICE_MARKET_SHEET_GENERATED_AT_ISO })}
-      </p>
-      <p className="hint tight">{t("market.autoHint")}</p>
-      {RICE_MARKET_USES_SEED_DATA && (
-        <p className="hint tight rice-seed-note">{t("market.riceSeedNote")}</p>
-      )}
 
       <div className="card market-detail">
         <p className="result-label">{t("market.selected")}</p>
