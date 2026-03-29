@@ -1,9 +1,11 @@
 node_modules
 dist
 .venv
+.venv-ml
 .env
 *.local
 .DS_Store
 apps/mobile/.expo
 apps/web/dist
 *.tsbuildinfo
+backend/models/*.json

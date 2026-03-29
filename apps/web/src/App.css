@@ -517,6 +517,54 @@ html.locale-my .app {
   border-top: 1px solid var(--color-border);
 }
 
+.ml-backend-block {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.rice-seed-note {
+  color: rgba(200, 220, 205, 0.75);
+  font-size: 0.85rem;
+}
+
+.price-chart-wrap {
+  margin: 0.5rem 0 1rem;
+  width: 100%;
+}
+
+.price-chart-svg {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+}
+
+.price-chart-xlabels {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin-top: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(232, 244, 236, 0.88);
+  letter-spacing: 0.02em;
+}
+
+.price-chart-xlabel {
+  flex: 1 0 auto;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.chart-empty {
+  margin: 0.5rem 0 1rem;
+  font-size: 0.88rem;
+  color: rgba(232, 244, 236, 0.72);
+}
+
 .prediction-mid {
   margin: 0 0 0.35rem;
   font-size: 1.45rem;
