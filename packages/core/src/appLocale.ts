@@ -19,21 +19,33 @@ export type AppStringKey =
   | "tab.settings"
   | "home.pill"
   | "home.tag"
-  | "home.farmShowcaseAria"
-  | "home.farmControlsAria"
-  | "home.farmPickPhoto"
-  | "home.farmCredits"
-  | "home.farmSlide1"
-  | "home.farmSlide2"
-  | "home.farmSlide3"
-  | "home.farmSlide4"
+  | "tutorial.title"
+  | "tutorial.step1"
+  | "tutorial.step2"
+  | "tutorial.step3"
+  | "tutorial.start"
+  | "tutorial.next"
+  | "tutorial.back"
+  | "tutorial.done"
   | "settings.title"
   | "settings.languageTitle"
   | "settings.languageMy"
   | "settings.languageEn"
   | "about.title"
   | "about.body"
+  | "about.faqTitle"
+  | "about.faqQ1"
+  | "about.faqA1"
+  | "about.faqQ2"
+  | "about.faqA2"
+  | "about.faqQ3"
+  | "about.faqA3"
   | "market.title"
+  | "farming.title"
+  | "farming.segmentPlants"
+  | "farming.segmentAnimals"
+  | "farming.animalsTitle"
+  | "farming.animalsBody"
   | "market.searchPlaceholder"
   | "market.searchAria"
   | "market.itemsAria"
@@ -63,10 +75,14 @@ export type AppStringKey =
   | "market.mlBackendResult"
   | "market.mlBackendNeedHistory"
   | "market.mlBackendNoUrl"
+  | "market.mlOfflineDemoNote"
   | "market.chartTitle"
   | "market.chartDataThrough"
+  | "market.chartWindowNote"
   | "market.pythonAutoNote"
+  | "market.ragSourcesLabel"
   | "market.forecastPriceTitle"
+  | "market.forecastPriceRange"
   | "market.weatherFallback"
   | "market.adviceTitle"
   | "market.adviceHold"
@@ -126,26 +142,22 @@ export type AppStringKey =
 const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
   my: {
     "tab.home": "ပင်မ",
-    "tab.market": "စျေးဈေး",
+    "tab.market": "စျေးကွက်",
     "tab.weather": "ရာသီဥတု",
     "tab.news": "သတင်း",
     "tab.settings": "ချိန်ညှိမှု",
-    "home.tag": "ဈေးလမ်းကြောင်း ကြိုသိဖို့ — သတင်းမလိုပါဘူး။",
+    "home.tag": "အမြတ်တိုးဖို့ လယ်ယာမိတ်ဆွေ ကို သုံးကြဖို့",
     "home.pill": "",
-    "home.farmShowcaseAria":
-      "မြန်မာ နှင့် ဒေသတွင်း လယ်ယာနှင့် စိုက်ပျိုးရေးဓာတ်ပုံများ",
-    "home.farmControlsAria": "ဓာတ်ပုံ ပြောင်းရန်",
-    "home.farmPickPhoto": "ဓာတ်ပုံ {n}",
-    "home.farmCredits":
-      "ဓာတ်ပုံများ — Unsplash (အခမဲ့ သုံးစွဲနိုင်သည်)။ ဓာတ်ပုံပိုင်ရှင်အမည်များ ATTRIBUTIONS.txt တွင် ရေးထားသည်။",
-    "home.farmSlide1":
-      "စိမ်းလန်းသော စပါးခင်းတွင် စပါးစိုက်ပျိုးမှု — ဒေသတွင်း လယ်သမားများနဲ့ ဆင်တူသော လုပ်ငန်းများ",
-    "home.farmSlide2":
-      "ကျယ်ပြန့်သော စပါးခင်းများ — အောက်မြစ်ဝှမ်း ဒေသများ၏ လယ်ယာရှုခင်း",
-    "home.farmSlide3":
-      "တောင်စောင်းလက်ဖက်ခြံတွင် လက်ဖက်ရိတ်သိမ်းမှု",
-    "home.farmSlide4":
-      "အင်းလေးကန်၊ မြန်မာနိုင်ငံ — ရေပေါ်ကျေးရွာနှင့် လယ်ယာများ",
+    "tutorial.title": "လယ်ယာမိတ်ဆွေ ကို ဘယ်လို သုံးမလဲ",
+    "tutorial.step1": "ပစ္စည်းရွေးရန် စျေးကွက် (Market) ကို နှိပ်ပါ။",
+    "tutorial.step2":
+      "နောက်တစ်ရက် ခန့်မှန်းဈေးနဲ့ လမ်းညွှန် (သိမ်း/ရောင်း/စောင့်) ကို ကြည့်ပါ။",
+    "tutorial.step3":
+      "မိုးလေဝသနဲ့ သတင်းကို Weather / News တွင် ကြည့်ပြီး ဆုံးဖြတ်ချက်ကို ကူညီပါ။",
+    "tutorial.start": "စတင်အသုံးပြုမည်",
+    "tutorial.next": "နောက်တစ်ဆင့်",
+    "tutorial.back": "နောက်ပြန်",
+    "tutorial.done": "ပြီးပါပြီ",
     "settings.title": "ချိန်ညှိမှု",
     "settings.languageTitle": "ဘာသာစကား",
     "settings.languageMy": "မြန်မာ",
@@ -153,18 +165,33 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "about.title": "အကြောင်း",
     "about.body":
       "ကျွန်ုပ်တို့သည် မြန်မာ စိုက်ပျိုးရှင်များ အတွက် Agriora အဖွဲ့ဖြစ်ပါသည်။\n\nစိုက်ပျိုးရှင်အများစုမှာ နေ့စဉ် စျေးကွက် သတင်းများ သို့မဟုတ် ကမ္ဘာ့ကုန်ဈေး သတင်းများကို မဖတ်ဖြစ်ကြပါ။ သို့သော် ထိုသတင်းများက ဈေးနှုန်း တက်ခြင်း သို့ ကျခြင်းနှင့် ဆက်နွယ်နေတတ်ပါသည်။\n\nAgriora သည် သတင်းများကို စုစည်းကာ ခန့်မှန်းချက်နှင့် ပေါင်းစပ်၍ ဈေးလမ်းကြောင်း ပြသပေးပါသည်။ သတင်းမဖတ်ဖြစ်သော်လည်း ဈေးအပြောင်းအလဲကို ကြိုတင်သိရှိပြီး ရောင်းဝယ်ချိန်ကို ပိုကောင်းအောင် စီစဉ်နိုင်စေရန်၊ စိုက်ပျိုးသူများ အကျိုးအမြတ် ရရှိရေး ကူညီပေးရန် ရည်ရွယ်ပါသည်။",
+    "about.faqTitle": "မေးလေ့ရှိသည့် မေးခွန်းများ",
+    "about.faqQ1": "Agriora ရဲ့ အဓိက ရည်ရွယ်ချက်က ဘာလဲ။",
+    "about.faqA1":
+      "စိုက်ပျိုးသူတွေ သတင်းမဖတ်ဖြစ်တဲ့နေ့တွေမှာတောင် ဈေးလမ်းကြောင်းကို လွယ်ကူစွာ နားလည်ပြီး ရောင်း/သိမ်းချိန် ဆုံးဖြတ်ရာမှာ အထောက်အကူပြုဖို့ပါ။",
+    "about.faqQ2": "Agriora က ဘာဒေတာတွေကို အသုံးပြုထားတာလဲ။",
+    "about.faqA2":
+      "ဈေးနှုန်း မှတ်တမ်းတွေ၊ မိုးလေဝသ အချက်အလက်တွေ၊ နေ့စဉ် စိုက်ပျိုးရေး/ကုန်စည် သတင်းခေါင်းစဉ်တွေကို ပေါင်းစပ်အသုံးပြုထားပါတယ်။",
+    "about.faqQ3": "ဒီ app ကို အသုံးပြုရင် စိုက်ပျိုးသူအတွက် ဘာအကျိုးရှိလဲ။",
+    "about.faqA3":
+      "ဈေးတက်/ကျ အလားအလာကို ကြိုတင်သိနိုင်လို့ ဆုံးရှုံးမှုလျော့ပြီး အမြတ်တိုးနိုင်သည့် ဆုံးဖြတ်ချက်တွေကို ပိုမိုမြန်ဆန်စွာချနိုင်ပါတယ်။",
     "market.title": "စိုက်ပျိုးကုန်စည် ဈေးနှုန်းများ",
+    "farming.title": "ကုန်စည်ဈေးနှုန်း",
+    "farming.segmentPlants": "စိုက်ပျိုးရေး",
+    "farming.segmentAnimals": "မွေးမြူရေး",
+    "farming.animalsTitle": "မွေးမြူရေး ဈေးနှုန်း",
+    "farming.animalsBody":
+      "ဤတွင် မွေးမြူရေး ဈေးနှုန်း စာရင်း မရှိသေးပါ။",
     "market.searchPlaceholder": "ပစ္စည်း ရှာရန်…",
     "market.searchAria": "ပစ္စည်း ရှာရန်",
     "market.itemsAria": "ပစ္စည်းစာရင်း",
     "market.selected": "ရွေးထားသည်",
-    "market.chooseItem": "ပစ္စည်း ရွေးပါ (data.xlsx)",
+    "market.chooseItem": "ပစ္စည်း ရွေးပါ",
     "market.itemFilterPlaceholder": "အမည် ရှာရန်…",
     "market.itemListHint": "ဖော်ပြထား {shown} / စုစုပေါင်း {total}",
     "market.itemListCap":
       "စာရင်း ၁၂၀ ထိသာ ပြပါသည် — ပိုရှာရန် အမည် ရိုက်ရှာပါ။",
-    "market.forecastConfidenceMl":
-      "မော်ဒယ် ယုံကြည်မှု — ခန့် {pct}% (အကြမ်း ညွှန်ပြချက်သာ)။",
+    "market.forecastConfidenceMl": "မော်ဒယ် ယုံကြည်မှု — {pct}%။",
     "market.forecastConfidenceLoading": "မော်ဒယ် ယုံကြည်မှု တွက်နေသည်…",
     "market.forecastConfidenceNoMl":
       "ML မော်ဒယ် မရသေးပါ — သတင်း/ရာသီဥတု စည်းမျဉ်း ခန့်မှန်းသာ။",
@@ -184,26 +211,35 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.mlBackendHint":
       "ဒေဗလုပ်ချိန်တွင် ပုံသေ http://127.0.0.1:8000 သုံးသည်။ ဖုန်းမှ ဖွင့်လျှင် ကွန်ပြူတာ LAN IP ဖြင့် apps/web/.env.development ကို ပြင်ပါ။ ဈေး မှတ်တမ်း ၈ ကြိမ် လိုအပ်သည်။",
     "market.mlBackendFetch": "Python API မှ ခန့်မှန်း",
-    "market.mlBackendLoading": "ML ဆာဗာ ဆက်သွယ်နေသည်…",
+    "market.mlBackendLoading":
+      "Machine learning model က သုံးသပ်နေသည် — ခဏစောင့်ပါ…",
     "market.mlBackendResult": "နောက်တစ်ရက် ဈေးပြောင်းနှုန်း ခန့်မှန်း (%)",
     "market.mlBackendNeedHistory":
-      "ဤအတန်းတွင် ဈေးနှုန်း မှတ်တမ်း မတွေ့ပါ (data.xlsx စစ်ပါ)။",
+      "ဤပစ္စည်းအတွက် ခန့်မှန်းရန် ဈေးနှုန်း မှတ်တမ်း မလုံလောက်သေးပါ။",
     "market.mlBackendNoUrl":
-      "ML API မတွေ့ပါ။ npm run ml:api ဖွင့်ပြီး ဝဘ်ကို ပြန်စတင်ပါ (သို့ .env မှာ VITE_ML_API_URL ထည့်ပါ)။",
-    "market.chartTitle": "ယခင်ဈေးများ (အလယ်ဈေး)",
+      "ခန့်မှန်းဝန်ဆောင်မှု မရရှိသေးပါ — အနည်းငယ်ကြာပြီး ပြန်စမ်းကြည့်ပါ။",
+    "market.mlOfflineDemoNote":
+      "Demo mode — ဖုန်းထဲရှိ အချက်အလက်ဖြင့် ML ခန့်မှန်းကို ပြသထားသည်။",
+    "market.chartTitle": "ယခင်ဈေးများ",
     "market.chartDataThrough":
       "ပြထားသော အလယ်ဈေးများ — နောက်ဆုံး မှတ်တမ်း နေ့ရက် {date}",
+    "market.chartWindowNote":
+      "ကွင်းကြား — ပစ္စည်းအမျိုးအစားအလိုက် မကြာသေးမီကာလကို ပြထားသည်။ နောက်တစ်ရက် ခန့်မှန်းချက်က မှတ်တမ်း အပြည့်အစုံ (အဟောင်း ဒေတာပါဝင်) သုံးသည်။",
     "market.pythonAutoNote":
       "သတင်း/ရာသီဥတု နောက်ခံမှ ထည့်သွင်းပြီး နောက်တစ်ရက် ဈေးပြောင်းနှုန်း (%) ကို ML ဆာဗာသို့ အလိုအလျောက် တောင်းပါသည်။",
-    "market.forecastPriceTitle": "ခန့်မှန်း ဈေးနှုန်း",
+    "market.ragSourcesLabel": "ကိုးကားချက်များ (အကြမ်း မှတ်တမ်း)",
+    "market.forecastPriceTitle": "နောက်တစ်ရက် ခန့်မှန်း ဈေး",
+    "market.forecastPriceRange":
+      "အကြမ်း အကွာအဝေး — {low} မှ {high} ကျပ်",
     "market.weatherFallback":
       "တည်နေရာ မရရှိပါ — ရန်ကုန် ရာသီဥတု သုံးထားသည်",
     "market.adviceTitle": "နောက်တစ်ရက် လမ်းညွှန်",
-    "market.adviceHold": "ထားပါ (Hold)",
-    "market.adviceHoldSub": "မော်ဒယ်အရ ဈေး တက်နိုင်သည် — အရောင်းပိုင်း နှောင့်နှေးပါ။",
-    "market.adviceSell": "ရောင်းရှားပါ",
+    "market.adviceHold": "သိမ်းဆည်းထားပါ",
+    "market.adviceHoldSub":
+      "မော်ဒယ်အရ ဈေး တက်နိုင်သည် — ယခုမရောင်းသေးဘဲ သိမ်းဆည်းထားခြင်းက ပိုအကျိုးရှိနိုင်သည်။",
+    "market.adviceSell": "ယခု ရောင်းချပါ",
     "market.adviceSellSub":
-      "ဈေး ကျနိုင်သည် သို့ ပတ်လည်ဈေး အားနည်းနေပါက — ဆုံးရှုံးမှု မများအောင် ရောင်းချဖို့ စဉ်းစားပါ။",
+      "မော်ဒယ်အရ ဈေးကျလာနိုင်သည့် အလားအလာရှိသည် — ယခုရောင်းချခြင်းဖြင့် ဆုံးရှုံးမများအောင် စိတ်ချရနိုင်သည်။",
     "market.adviceNeutral": "စောင့်ကြည့်ပါ",
     "market.adviceNeutralSub": "တက်ကျ ပြင်းထန်မှု မထင်ရှားပါ — ဆက်လက် စောင့်ကြည့်ပါ။",
     "market.adviceDetailsToggle": "အကြမ်း အကြောင်း",
@@ -269,22 +305,18 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "tab.weather": "Weather",
     "tab.news": "News",
     "tab.settings": "Settings",
-    "home.tag": "Ahead of the market—without reading the news.",
+    "home.tag": "အမြတ်တိုးဖို့ လယ်ယာမိတ်ဆွေ ကို သုံးကြဖို့",
     "home.pill": "",
-    "home.farmShowcaseAria":
-      "Photos of farms and countryside in Myanmar and our region",
-    "home.farmControlsAria": "Choose a photo",
-    "home.farmPickPhoto": "Photo {n}",
-    "home.farmCredits":
-      "Photos from Unsplash (free to use). Photographer names are listed in ATTRIBUTIONS.txt.",
-    "home.farmSlide1":
-      "Planting rice in lush green paddies — work that looks like farms across our region",
-    "home.farmSlide2":
-      "Wide rice plains — countryside in the lower Mekong region",
-    "home.farmSlide3":
-      "Picking tea on hillside plantations",
-    "home.farmSlide4":
-      "Inle Lake, Myanmar — stilt villages and water farms",
+    "tutorial.title": "How to use လယ်ယာမိတ်ဆွေ",
+    "tutorial.step1": "Tap Market to choose your commodity item.",
+    "tutorial.step2":
+      "Check the next-day estimated price and the guide (store/sell/wait).",
+    "tutorial.step3":
+      "Use Weather and News tabs to understand why the direction may change.",
+    "tutorial.start": "Start using app",
+    "tutorial.next": "Next",
+    "tutorial.back": "Back",
+    "tutorial.done": "Done",
     "settings.title": "Settings",
     "settings.languageTitle": "Language",
     "settings.languageMy": "Burmese",
@@ -292,18 +324,33 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "about.title": "About",
     "about.body":
       "We are Team Agriora — a team building for Myanmar’s farmers.\n\nMany growers do not read market and commodity news every day. Those stories still carry signals about whether prices may rise or fall.\n\nAgriora gathers relevant headlines, combines them with price trends and weather, and shows a simple forecast direction. Our goal is to help farmers plan buying and selling even when they miss the news — so they can spot opportunities and improve returns.",
+    "about.faqTitle": "Frequently Asked Questions",
+    "about.faqQ1": "What is Agriora's main purpose?",
+    "about.faqA1":
+      "To help farmers quickly understand likely price direction and decide when to sell or hold, even when they miss daily market news.",
+    "about.faqQ2": "What data does Agriora use?",
+    "about.faqA2":
+      "It combines historical market prices, weather signals, and current agriculture/commodity news headlines.",
+    "about.faqQ3": "How does this help farmers in practice?",
+    "about.faqA3":
+      "It gives early directional guidance so farmers can reduce downside risk and make better timing decisions to improve returns.",
     "market.title": "Ag wholesale prices",
+    "farming.title": "Commodities",
+    "farming.segmentPlants": "Crop farming",
+    "farming.segmentAnimals": "Livestock",
+    "farming.animalsTitle": "Livestock prices",
+    "farming.animalsBody":
+      "No livestock price series are loaded in this build.",
     "market.searchPlaceholder": "Filter items…",
     "market.searchAria": "Filter market items",
     "market.itemsAria": "Commodity list",
     "market.selected": "Selected",
-    "market.chooseItem": "Choose item (from data.xlsx)",
+    "market.chooseItem": "Choose an item",
     "market.itemFilterPlaceholder": "Filter by name…",
     "market.itemListHint": "Showing {shown} of {total}",
     "market.itemListCap":
       "Only the first 120 rows are listed — type to filter the full sheet.",
-    "market.forecastConfidenceMl":
-      "Model confidence: about {pct}% (rough signal only).",
+    "market.forecastConfidenceMl": "Model confidence: about {pct}%.",
     "market.forecastConfidenceLoading": "Estimating model confidence…",
     "market.forecastConfidenceNoMl":
       "ML model unavailable — showing a rule-based estimate only.",
@@ -322,27 +369,34 @@ const STRINGS: Record<AppLocale, Record<AppStringKey, string>> = {
     "market.mlBackendHint":
       "Dev default is http://127.0.0.1:8000. From a phone, set your PC’s LAN IP in apps/web/.env.development (or EXPO_PUBLIC_ML_API_URL for Expo). Needs 8 price observations.",
     "market.mlBackendFetch": "Fetch from Python API",
-    "market.mlBackendLoading": "Calling ML server…",
+    "market.mlBackendLoading":
+      "Machine learning model is evaluating. Please wait…",
     "market.mlBackendResult": "Estimated next-day price change (%)",
     "market.mlBackendNeedHistory":
-      "No usable price cells for this row (check data.xlsx).",
+      "Not enough recent price history to estimate this item yet.",
     "market.mlBackendNoUrl":
-      "ML API URL unavailable. Run npm run ml:api and restart the web app, or set VITE_ML_API_URL.",
+      "Prediction service is temporarily unavailable. Please try again shortly.",
+    "market.mlOfflineDemoNote":
+      "Demo mode — showing ML-style prediction from local on-device data.",
     "market.chartTitle": "Past prices (midpoint)",
     "market.chartDataThrough":
       "Mid prices shown — last record date: {date}",
+    "market.chartWindowNote":
+      "Chart: recent history window from the latest record (window size varies by item type). The next-day estimate uses the full history, not just this window.",
     "market.pythonAutoNote":
       "Background news and weather are included when requesting the next-day change (%) from the ML server.",
-    "market.forecastPriceTitle": "Estimated price",
+    "market.ragSourcesLabel": "Reference notes used with headlines",
+    "market.forecastPriceTitle": "Tomorrow's estimated price",
+    "market.forecastPriceRange": "Rough range — {low}–{high} MMK",
     "market.weatherFallback":
       "Location unavailable — using Yangon weather",
     "market.adviceTitle": "Next-day guide",
-    "market.adviceHold": "Hold",
+    "market.adviceHold": "Keep it stored",
     "market.adviceHoldSub":
-      "The model suggests prices may rise — waiting to sell could pay off.",
-    "market.adviceSell": "Consider selling",
+      "The model suggests prices may rise — keeping grain stored instead of selling now could pay off.",
+    "market.adviceSell": "Sell now",
     "market.adviceSellSub":
-      "The outlook suggests weaker prices or a down week — selling may limit further losses (not financial advice).",
+      "The model suggests prices may fall — selling now may limit losses versus waiting (illustrative only).",
     "market.adviceNeutral": "Wait and watch",
     "market.adviceNeutralSub":
       "No strong move expected — keep monitoring the market.",

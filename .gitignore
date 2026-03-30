@@ -1,5 +1,8 @@
 node_modules
 dist
+.expo
+__pycache__
+*.pyc
 .venv
 .venv-ml
 .env
@@ -10,3 +13,4 @@ apps/web/dist
 *.tsbuildinfo
 backend/models/*.json
 backend/models/*.joblib
+backend/models/by_item/

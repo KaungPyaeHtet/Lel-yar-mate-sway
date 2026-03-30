@@ -6,6 +6,11 @@ import { myLh, theme } from "./theme";
 
 export function SettingsTab() {
   const { locale, setLocale, t } = useI18n();
+  const faqRows = [
+    { q: "about.faqQ1", a: "about.faqA1" },
+    { q: "about.faqQ2", a: "about.faqA2" },
+    { q: "about.faqQ3", a: "about.faqA3" },
+  ] as const;
 
   return (
     <ScrollView
@@ -82,6 +87,21 @@ export function SettingsTab() {
       </View>
       <View style={styles.card}>
         <UiText style={styles.body}>{t("about.body")}</UiText>
+      </View>
+
+      <UiText style={styles.subheading}>{t("about.faqTitle")}</UiText>
+      <View style={styles.card}>
+        {faqRows.map(({ q, a }, idx) => (
+          <View
+            key={q}
+            style={[styles.faqItem, idx > 0 && styles.faqItemDivider]}
+          >
+            <UiText style={styles.faqQ}>
+              Q{idx + 1}. {t(q)}
+            </UiText>
+            <UiText style={styles.faqA}>{t(a)}</UiText>
+          </View>
+        ))}
       </View>
     </ScrollView>
   );
@@ -167,4 +187,23 @@ const styles = StyleSheet.create({
   },
   langBtnTextActive: { color: theme.onAccent },
   body: { color: theme.fgMuted, fontSize: 16, lineHeight: myLh(16) },
+  faqItem: { paddingVertical: 2 },
+  faqItemDivider: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+  },
+  faqQ: {
+    color: theme.fg,
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: myLh(15),
+    marginBottom: 4,
+  },
+  faqA: {
+    color: theme.fgMuted,
+    fontSize: 14,
+    lineHeight: myLh(14),
+  },
 });

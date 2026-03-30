@@ -6,29 +6,32 @@ import {
   type MlNextDayDetail,
   type RiceMlAdvice,
   adviceFromMlNextDayPct,
+  blendScreenNewsVerdictWithMomentum,
   fetchCurrentWeather,
+  fetchWeatherHistoryDaily,
   fetchMlNextDayDetail,
   fetchRiceMarketNewsContext,
   forecastKyatFromMlPct,
-  formatLongDateLabel,
   formatSignedPercent,
   getDefaultMarketItemForUi,
-  getMarketItemById,
-  initialMarketTabItemId,
+  initialMarketTabItemIdFrom,
+  marketItemLabelForLocale,
+  marketItemMetaLineForLocale,
+  marketItemSearchBlob,
   MARKET_ITEMS,
   mlNewsHeadlineForItem,
+  newsHeadlinesForMlHistory,
   getMlApiBaseUrl,
   midPriceMomentumPct,
   observationMidsOldestToNewest,
   predictItemPrice,
   rainfallMmHintFromWeatherCode,
   recentMidPricesForInference,
-  riceMidSeriesForChart,
-  searchMarketItems,
-  shortMarketItemLabelForUi,
+  riceMidSeriesForChartDisplay,
   riceNewsContextToLines,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
+  type MarketItem,
 } from "@agriora/core";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -70,6 +73,38 @@ function formatMmks(n: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
     n
   );
+}
+
+function buildOfflineMlDetail(
+  prediction: NonNullable<ReturnType<typeof predictItemPrice>>,
+  weatherSnap: CurrentWeatherSnapshot,
+  momentum: { change1dPct: number; change7dPct: number } | null
+): MlNextDayDetail {
+  const nextDayPctChange =
+    prediction.baselineMid > 0
+      ? (prediction.predictedMid / prediction.baselineMid - 1) * 100
+      : 0;
+  const sentimentScore =
+    prediction.factors.newsVerdict === "up"
+      ? 0.35
+      : prediction.factors.newsVerdict === "down"
+        ? -0.35
+        : 0;
+  const m1 = momentum?.change1dPct ?? 0;
+  const m7 = momentum?.change7dPct ?? 0;
+  const confidenceHint = Math.min(
+    0.9,
+    Math.max(0.52, 0.58 + Math.min(0.12, Math.abs(nextDayPctChange) * 0.03))
+  );
+  return {
+    nextDayPctChange,
+    sentimentScore,
+    priceChange1dPct: m1,
+    priceChange7dPct: m7,
+    tempC: weatherSnap.temperatureC,
+    rainfallMm: rainfallMmHintFromWeatherCode(weatherSnap.weatherCode),
+    confidenceHint,
+  };
 }
 
 function MlAdviceRationaleMobile({
@@ -209,43 +244,76 @@ function MlAdviceRow({
   );
 }
 
-export function MarketTab() {
+type MarketTabProps = {
+  /** When embedded under the farming hub, hide the duplicate page title. */
+  hideTitle?: boolean;
+  /** Limit the commodity list (e.g. စိုက်ပျိုးရေး vs မွေးမြူရေး). */
+  marketItems?: readonly MarketItem[];
+};
+
+export function MarketTab({ hideTitle = false, marketItems }: MarketTabProps) {
   const { locale, t, tf } = useI18n();
-  const [itemId, setItemId] = useState(() => initialMarketTabItemId());
-  const [itemFilter, setItemFilter] = useState("");
-  const selected = useMemo(
-    () => getMarketItemById(itemId) ?? getDefaultMarketItemForUi(),
-    [itemId]
+  const pool = useMemo(
+    () => marketItems ?? MARKET_ITEMS,
+    [marketItems]
   );
+  const [itemId, setItemId] = useState(() =>
+    initialMarketTabItemIdFrom(marketItems ?? MARKET_ITEMS)
+  );
+  const [itemFilter, setItemFilter] = useState("");
+  const selected = useMemo(() => {
+    const hit = pool.find((it) => it.id === itemId);
+    if (hit) return hit;
+    return pool[0] ?? getDefaultMarketItemForUi();
+  }, [itemId, pool]);
+
+  useEffect(() => {
+    if (!pool.some((it) => it.id === itemId)) {
+      setItemId(initialMarketTabItemIdFrom(pool));
+    }
+  }, [pool, itemId]);
+
   const { shownItems, allMatching } = useMemo(() => {
-    const all = itemFilter.trim()
-      ? searchMarketItems(itemFilter)
-      : [...MARKET_ITEMS];
+    const q = itemFilter.trim().toLowerCase();
+    const all = q
+      ? pool.filter((it) =>
+          marketItemSearchBlob(it, locale).toLowerCase().includes(q)
+        )
+      : [...pool];
     return { allMatching: all, shownItems: all.slice(0, 120) };
-  }, [itemFilter]);
+  }, [itemFilter, pool, locale]);
   const [newsAuto, setNewsAuto] = useState("");
   const [newsLoading, setNewsLoading] = useState(true);
   const [weatherSnap, setWeatherSnap] = useState<CurrentWeatherSnapshot | null>(
     null
   );
+  const [weatherCoords, setWeatherCoords] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
   const [mlDetail, setMlDetail] = useState<MlNextDayDetail | null>(null);
   const [adviceDetailOpen, setAdviceDetailOpen] = useState(false);
   const [mlErr, setMlErr] = useState<string | null>(null);
   const [mlLoading, setMlLoading] = useState(false);
+  const [mlOfflineDemo, setMlOfflineDemo] = useState(false);
 
   const mlBase = getMlApiBaseUrl();
   const mlRunRef = useRef(0);
 
   const chartSeries = useMemo(
-    () => riceMidSeriesForChart(selected),
+    () => riceMidSeriesForChartDisplay(selected),
     [selected]
   );
 
-  const prediction = predictItemPrice(selected, {
-    newsText: newsAuto.trim() || undefined,
-    weatherCode: weatherSnap?.weatherCode,
-    temperatureC: weatherSnap?.temperatureC,
-  });
+  const prediction = useMemo(
+    () =>
+      predictItemPrice(selected, {
+        newsText: newsAuto.trim() || undefined,
+        weatherCode: weatherSnap?.weatherCode,
+        temperatureC: weatherSnap?.temperatureC,
+      }),
+    [selected, newsAuto, weatherSnap?.weatherCode, weatherSnap?.temperatureC]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -271,7 +339,10 @@ export function MarketTab() {
       const applyYangon = async () => {
         const y = MYANMAR_PLACES[0]!;
         const w = await fetchCurrentWeather(y.latitude, y.longitude);
-        if (!cancelled) setWeatherSnap(w);
+        if (!cancelled) {
+          setWeatherSnap(w);
+          setWeatherCoords({ lat: y.latitude, lon: y.longitude });
+        }
       };
       try {
         const loc = await resolveCoordsForWeather();
@@ -280,7 +351,10 @@ export function MarketTab() {
           return;
         }
         const w = await fetchCurrentWeather(loc.latitude, loc.longitude);
-        if (!cancelled) setWeatherSnap(w);
+        if (!cancelled) {
+          setWeatherSnap(w);
+          setWeatherCoords({ lat: loc.latitude, lon: loc.longitude });
+        }
       } catch {
         if (!cancelled) await applyYangon();
       }
@@ -292,7 +366,7 @@ export function MarketTab() {
   }, []);
 
   useEffect(() => {
-    if (!mlBase || !weatherSnap || newsLoading) return;
+    if (!weatherSnap || newsLoading) return;
     const prices = recentMidPricesForInference(selected, 8);
     if (!prices) {
       setMlErr(t("market.mlBackendNeedHistory"));
@@ -302,6 +376,7 @@ export function MarketTab() {
     setMlLoading(true);
     setMlErr(null);
     setMlDetail(null);
+    setMlOfflineDemo(false);
     setAdviceDetailOpen(false);
     const headline = mlNewsHeadlineForItem(
       newsAuto.trim() || ML_HEADLINE_FALLBACK,
@@ -312,50 +387,100 @@ export function MarketTab() {
       rawMids.length >= 8
         ? midPriceMomentumPct(rawMids.slice(-8))
         : null;
+    const offlineDetail = prediction
+      ? buildOfflineMlDetail(prediction, weatherSnap, momentum)
+      : null;
+    if (!mlBase) {
+      if (offlineDetail) {
+        setMlDetail(offlineDetail);
+        setMlOfflineDemo(true);
+      } else {
+        setMlErr(t("market.mlBackendNoUrl"));
+      }
+      setMlLoading(false);
+      return;
+    }
     const rainMm = rainfallMmHintFromWeatherCode(weatherSnap.weatherCode);
-    fetchMlNextDayDetail({
-      avgPrices: prices,
-      rainfallMm: rainMm,
-      tempC: weatherSnap.temperatureC,
-      newsHeadline: headline,
-      fallbackMomentum: momentum,
-    })
-      .then((d) => {
-        if (mlRunRef.current === runId) setMlDetail(d);
-      })
-      .catch((e) => {
-        if (mlRunRef.current === runId) {
-          setMlErr(
-            e instanceof Error ? e.message : t("errors.mlBackend")
+    const newsSlices = newsHeadlinesForMlHistory(headline, 30);
+    let cancelled = false;
+    void (async () => {
+      let rainHist: number[] | undefined;
+      let tempHist: number[] | undefined;
+      try {
+        if (weatherCoords) {
+          const h = await fetchWeatherHistoryDaily(
+            weatherCoords.lat,
+            weatherCoords.lon,
+            30
           );
+          rainHist = h.rainMm;
+          tempHist = h.tempC;
         }
+      } catch {
+        /* scalar fallback */
+      }
+      if (cancelled) return;
+      fetchMlNextDayDetail({
+        avgPrices: prices,
+        marketItemId: selected.id,
+        rainfallMm: rainMm,
+        tempC: weatherSnap.temperatureC,
+        newsHeadline: headline,
+        rainfallMmHistory: rainHist,
+        tempCHistory: tempHist,
+        newsHeadlinesHistory: newsSlices,
+        fallbackMomentum: momentum,
       })
-      .finally(() => {
-        if (mlRunRef.current === runId) setMlLoading(false);
-      });
-  }, [mlBase, selected, weatherSnap, newsAuto, newsLoading, t]);
+        .then((d) => {
+          if (mlRunRef.current === runId) {
+            setMlDetail(d);
+            setMlOfflineDemo(false);
+          }
+        })
+        .catch((e) => {
+          if (mlRunRef.current === runId) {
+            if (offlineDetail) {
+              setMlDetail(offlineDetail);
+              setMlOfflineDemo(true);
+              setMlErr(null);
+            } else {
+              setMlErr(
+                e instanceof Error ? e.message : t("errors.mlBackend")
+              );
+            }
+          }
+        })
+        .finally(() => {
+          if (mlRunRef.current === runId) setMlLoading(false);
+        });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mlBase, selected, weatherSnap, newsAuto, newsLoading, t, weatherCoords, prediction]);
 
   const newsLines = useMemo(
     () => riceNewsContextToLines(newsAuto, 8),
     [newsAuto]
   );
   const usedPlaceholderNews = !newsAuto.trim();
-  const screenVerdictLabel = verdictLabelForLocale(
-    locale,
-    screenNewsVerdict(prediction?.factors.newsVerdict)
+  const screenVerdictLabel = useMemo(
+    () =>
+      verdictLabelForLocale(
+        locale,
+        blendScreenNewsVerdictWithMomentum(
+          screenNewsVerdict(prediction?.factors.newsVerdict),
+          mlDetail?.priceChange1dPct,
+          mlDetail?.priceChange7dPct
+        )
+      ),
+    [
+      locale,
+      prediction?.factors.newsVerdict,
+      mlDetail?.priceChange1dPct,
+      mlDetail?.priceChange7dPct,
+    ]
   );
-
-  const latestDateIso = useMemo(() => {
-    if (chartSeries.length > 0) {
-      return chartSeries[chartSeries.length - 1]!.dateIso;
-    }
-    return prediction?.baselineDateIso ?? null;
-  }, [chartSeries, prediction]);
-
-  const latestDateLabel = useMemo(() => {
-    if (!latestDateIso) return null;
-    return formatLongDateLabel(latestDateIso, locale);
-  }, [latestDateIso, locale]);
 
   const mlForecastKyat =
     prediction && mlDetail
@@ -370,10 +495,22 @@ export function MarketTab() {
   const displayForecastMid =
     mlForecastKyat?.mid ?? prediction?.predictedMid ?? null;
 
+  const displayForecastRange = useMemo(() => {
+    if (!prediction) return null;
+    if (mlForecastKyat)
+      return { low: mlForecastKyat.low, high: mlForecastKyat.high };
+    return {
+      low: prediction.predictedLow,
+      high: prediction.predictedHigh,
+    };
+  }, [prediction, mlForecastKyat]);
+
   const adviceItemLabel = useMemo(
-    () => shortMarketItemLabelForUi(selected),
-    [selected]
+    () => marketItemLabelForLocale(selected, locale),
+    [selected, locale]
   );
+  const showMlEvaluating =
+    mlBase && !mlErr && mlDetail == null && (mlLoading || newsLoading || !weatherSnap);
 
   return (
     <ScrollView
@@ -381,15 +518,17 @@ export function MarketTab() {
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.titleRow}>
-        <Ionicons
-          name="storefront-outline"
-          size={28}
-          color={theme.accent}
-          style={styles.titleIcon}
-        />
-        <UiText style={styles.pageTitle}>{t("market.title")}</UiText>
-      </View>
+      {!hideTitle ? (
+        <View style={styles.titleRow}>
+          <Ionicons
+            name="storefront-outline"
+            size={28}
+            color={theme.accent}
+            style={styles.titleIcon}
+          />
+          <UiText style={styles.pageTitle}>{t("market.title")}</UiText>
+        </View>
+      ) : null}
       <View style={styles.card}>
         <UiText style={styles.resultLabel}>{t("market.chooseItem")}</UiText>
         <TextInput
@@ -424,26 +563,23 @@ export function MarketTab() {
                 pressed && styles.itemRowPressed,
               ]}
             >
-              <UiText style={styles.itemRowTitle}>{it.itemDetails}</UiText>
+              <UiText style={styles.itemRowTitle}>
+                {marketItemLabelForLocale(it, locale)}
+              </UiText>
               <UiText style={styles.itemRowMeta}>{it.itemCategory}</UiText>
             </Pressable>
           ))}
         </ScrollView>
 
         <UiText style={styles.resultLabel}>{t("market.selected")}</UiText>
-        <UiText style={styles.detailTitle}>{selected.itemDetails}</UiText>
+        <UiText style={styles.detailTitle}>
+          {marketItemLabelForLocale(selected, locale)}
+        </UiText>
         <UiText style={styles.meta}>
-          {[selected.group, selected.mainCategory, selected.itemCategory]
-            .filter(Boolean)
-            .join(" · ")}
+          {marketItemMetaLineForLocale(selected, locale)}
         </UiText>
 
         <UiText style={styles.resultLabel}>{t("market.chartTitle")}</UiText>
-        {latestDateLabel ? (
-          <UiText style={styles.dateCaption}>
-            {tf("market.chartDataThrough", { date: latestDateLabel })}
-          </UiText>
-        ) : null}
         <PriceHistoryChartMobile series={chartSeries} locale={locale} />
 
         {displayForecastMid != null && prediction ? (
@@ -454,12 +590,20 @@ export function MarketTab() {
             <UiText style={styles.predMid}>
               {formatMmks(displayForecastMid)} {t("common.mmk")}
             </UiText>
+            {displayForecastRange ? (
+              <UiText style={styles.predRange}>
+                {tf("market.forecastPriceRange", {
+                  low: formatMmks(displayForecastRange.low),
+                  high: formatMmks(displayForecastRange.high),
+                })}
+              </UiText>
+            ) : null}
             <UiText style={styles.dateCaption}>
               {mlDetail != null
                 ? tf("market.forecastConfidenceMl", {
                     pct: Math.round(mlDetail.confidenceHint * 100),
                   })
-                : mlBase && mlLoading
+                : mlLoading
                   ? t("market.forecastConfidenceLoading")
                   : t("market.forecastConfidenceNoMl")}
             </UiText>
@@ -468,43 +612,48 @@ export function MarketTab() {
 
         <View style={styles.mlBlock}>
           <UiText style={styles.resultLabel}>{t("market.adviceTitle")}</UiText>
-          {mlBase ? (
-            <>
-              {mlLoading ? (
-                <UiText style={styles.meta}>{t("market.mlBackendLoading")}</UiText>
-              ) : null}
-              {mlErr ? <UiText style={styles.mlErr}>{mlErr}</UiText> : null}
-              {mlDetail != null && weatherSnap ? (
-                <>
-                  <MlAdviceRow
-                    advice={adviceFromMlNextDayPct(
-                      mlDetail.nextDayPctChange,
-                      { priceChange7dPct: mlDetail.priceChange7dPct }
-                    )}
-                    t={t}
-                    onPress={() =>
-                      setAdviceDetailOpen((open) => !open)
+          <>
+            {showMlEvaluating ? (
+              <UiText style={styles.meta}>{t("market.mlBackendLoading")}</UiText>
+            ) : null}
+            {mlOfflineDemo ? (
+              <UiText style={styles.meta}>{t("market.mlOfflineDemoNote")}</UiText>
+            ) : null}
+            {!mlBase && !mlDetail && !mlErr ? (
+              <UiText style={styles.hintTight}>{t("market.mlBackendNoUrl")}</UiText>
+            ) : null}
+            {mlErr ? <UiText style={styles.mlErr}>{mlErr}</UiText> : null}
+            {mlDetail != null && weatherSnap ? (
+              <>
+                <MlAdviceRow
+                  advice={adviceFromMlNextDayPct(
+                    mlDetail.nextDayPctChange,
+                    {
+                      priceChange1dPct: mlDetail.priceChange1dPct,
+                      priceChange7dPct: mlDetail.priceChange7dPct,
                     }
+                  )}
+                  t={t}
+                  onPress={() =>
+                    setAdviceDetailOpen((open) => !open)
+                  }
+                />
+                {adviceDetailOpen ? (
+                  <MlAdviceRationaleMobile
+                    locale={locale}
+                    t={t}
+                    tf={tf}
+                    detail={mlDetail}
+                    itemLabel={adviceItemLabel}
+                    newsLines={newsLines}
+                    weatherSnap={weatherSnap}
+                    screenVerdictLabel={screenVerdictLabel}
+                    usedPlaceholderNews={usedPlaceholderNews}
                   />
-                  {adviceDetailOpen ? (
-                    <MlAdviceRationaleMobile
-                      locale={locale}
-                      t={t}
-                      tf={tf}
-                      detail={mlDetail}
-                      itemLabel={adviceItemLabel}
-                      newsLines={newsLines}
-                      weatherSnap={weatherSnap}
-                      screenVerdictLabel={screenVerdictLabel}
-                      usedPlaceholderNews={usedPlaceholderNews}
-                    />
-                  ) : null}
-                </>
-              ) : null}
-            </>
-          ) : (
-            <UiText style={styles.hintTight}>{t("market.mlBackendNoUrl")}</UiText>
-          )}
+                ) : null}
+              </>
+            ) : null}
+          </>
         </View>
       </View>
     </ScrollView>
@@ -625,8 +774,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: theme.price,
-    marginBottom: 8,
+    marginBottom: 4,
     lineHeight: myLh(24),
+  },
+  predRange: {
+    fontSize: 13,
+    color: theme.fgMuted,
+    marginBottom: 8,
+    lineHeight: myLh(13),
   },
   mlBlock: {
     marginTop: 12,

@@ -15,7 +15,9 @@ export {
 
 export {
   buildOpenMeteoCurrentUrl,
+  buildOpenMeteoPastDailyUrl,
   fetchCurrentWeather,
+  fetchWeatherHistoryDaily,
   parseOpenMeteoCurrent,
   rainfallMmHintFromWeatherCode,
   weatherCodeLabel,
@@ -33,6 +35,14 @@ export {
   type AppLocale,
   type AppStringKey,
 } from "./appLocale";
+
+export {
+  marketItemLabelForLocale,
+  marketItemMetaLineForLocale,
+  marketItemPrimaryForLocale,
+  marketItemSearchBlob,
+  marketItemSecondaryForLocale,
+} from "./commodityLocale";
 
 export { formatLongDateLabel, tomorrowDateIsoLocal } from "./localeFormat";
 
@@ -56,17 +66,23 @@ export {
 
 export {
   forecastKyatFromMlPct,
+  blendScreenNewsVerdictWithMomentum,
+  FARMING_LIVESTOCK_GROUP,
+  FARMING_LIVESTOCK_ITEMS,
+  FARMING_PLANT_ITEMS,
   getDefaultMarketItemForUi,
   getMarketItemById,
   latestMidpoint,
   latestObservation,
   midPriceMomentumPct,
   mlNewsHeadlineForItem,
+  newsHeadlinesForMlHistory,
   observationMidsOldestToNewest,
   predictItemPrice,
   recentMidPricesForInference,
   recentMidPricesForMl,
   searchMarketItems,
+  searchMarketItemsIn,
   shortMarketItemLabelForUi,
   weatherPriceModifier,
   MARKET_GENERATED_AT_ISO,
@@ -99,9 +115,14 @@ export {
   RICE_MARKET_SHEET_GENERATED_AT_ISO,
   RICE_MARKET_USES_SEED_DATA,
   getRiceMarketItemById,
+  CHART_DEFAULT_RECENT_DAYS,
   getPrimaryRiceMarketItem,
   initialMarketTabItemId,
+  initialMarketTabItemIdFrom,
   isRiceMarketItemFromSheet,
+  isWfpFoodPriceItem,
   riceMidSeriesForChart,
+  riceMidSeriesForChartDisplay,
+  riceMidSeriesForChartLastDays,
   searchRiceMarketItems,
 } from "./riceMarket";

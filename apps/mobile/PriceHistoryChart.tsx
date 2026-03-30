@@ -39,7 +39,7 @@ export function PriceHistoryChartMobile({
   const svgW = Math.min(560, Math.max(280, winW - 48));
   const svgH = Math.round((svgW * VB_H) / VB_W);
 
-  if (series.length < 2) {
+  if (series.length === 0) {
     return (
       <UiText style={styles.chartEmpty}>
         {locale === "my"
@@ -58,6 +58,73 @@ export function PriceHistoryChartMobile({
     PAD_L + (INNER_W * i) / Math.max(1, series.length - 1);
   const yAt = (v: number) =>
     PAD_T + INNER_H - ((v - minV) / span) * INNER_H;
+
+  if (series.length === 1) {
+    const p = series[0]!;
+    const cx = PAD_L + INNER_W / 2;
+    const cy =
+      minV === maxV
+        ? PAD_T + INNER_H / 2
+        : yAt(p.mid);
+    const borderStroke = "rgba(27, 35, 25, 0.12)";
+    const accent = theme.accent;
+    return (
+      <View style={styles.wrap} accessibilityRole="image" accessibilityLabel="Price history">
+        <Svg
+          width={svgW}
+          height={svgH}
+          viewBox={`0 0 ${VB_W} ${VB_H}`}
+          preserveAspectRatio="xMidYMid meet"
+        >
+          {[0, 0.5, 1].map((t) => {
+            const y = PAD_T + INNER_H * (1 - t);
+            return (
+              <Line
+                key={t}
+                x1={PAD_L}
+                y1={y}
+                x2={VB_W - PAD_R}
+                y2={y}
+                stroke={borderStroke}
+                strokeWidth={1}
+              />
+            );
+          })}
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={5}
+            fill={theme.surface}
+            stroke={accent}
+            strokeWidth={2.25}
+          />
+          <SvgText
+            x={2}
+            y={PAD_T + 12}
+            fill={theme.fgMuted}
+            fontSize={11}
+            fontWeight="600"
+          >
+            {`${Math.round(maxV / 1000)}k`}
+          </SvgText>
+          <SvgText
+            x={2}
+            y={PAD_T + INNER_H}
+            fill={theme.fgMuted}
+            fontSize={11}
+            fontWeight="600"
+          >
+            {`${Math.round(minV / 1000)}k`}
+          </SvgText>
+        </Svg>
+        <View style={styles.xLabels}>
+          <UiText style={styles.xLabel} numberOfLines={1}>
+            {formatAxisDate(p.dateIso, locale)}
+          </UiText>
+        </View>
+      </View>
+    );
+  }
 
   const pathD = series
     .map((p, i) =>

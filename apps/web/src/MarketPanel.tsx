@@ -5,29 +5,32 @@ import {
   type CurrentWeatherSnapshot,
   type MlNextDayDetail,
   adviceFromMlNextDayPct,
+  blendScreenNewsVerdictWithMomentum,
   fetchCurrentWeather,
+  fetchWeatherHistoryDaily,
   fetchMlNextDayDetail,
   fetchRiceMarketNewsContext,
   forecastKyatFromMlPct,
-  formatLongDateLabel,
   formatSignedPercent,
   getDefaultMarketItemForUi,
-  getMarketItemById,
-  initialMarketTabItemId,
+  initialMarketTabItemIdFrom,
+  marketItemLabelForLocale,
+  marketItemMetaLineForLocale,
+  marketItemSearchBlob,
   MARKET_ITEMS,
   mlNewsHeadlineForItem,
+  newsHeadlinesForMlHistory,
   getMlApiBaseUrl,
   midPriceMomentumPct,
   observationMidsOldestToNewest,
   predictItemPrice,
   rainfallMmHintFromWeatherCode,
   recentMidPricesForInference,
-  riceMidSeriesForChart,
-  searchMarketItems,
-  shortMarketItemLabelForUi,
+  riceMidSeriesForChartDisplay,
   riceNewsContextToLines,
   verdictLabelForLocale,
   weatherCodeLabelLocale,
+  type MarketItem,
 } from "@agriora/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BROWSER_GEO_OPTIONS, canUseBrowserGeolocation } from "./browserGeo";
@@ -137,25 +140,53 @@ function formatMmks(n: number) {
   );
 }
 
-export function MarketPanel() {
+type MarketPanelProps = {
+  /** When embedded under the farming hub, hide the duplicate page title. */
+  hideTitle?: boolean;
+  /** Limit the commodity list (e.g. စိုက်ပျိုးရေး vs မွေးမြူရေး). */
+  marketItems?: readonly MarketItem[];
+};
+
+export function MarketPanel({ hideTitle = false, marketItems }: MarketPanelProps) {
   const { locale, t, tf } = useI18n();
-  const [itemId, setItemId] = useState(() => initialMarketTabItemId());
-  const [itemFilter, setItemFilter] = useState("");
-  const selected = useMemo(
-    () => getMarketItemById(itemId) ?? getDefaultMarketItemForUi(),
-    [itemId]
+  const pool = useMemo(
+    () => marketItems ?? MARKET_ITEMS,
+    [marketItems]
   );
+  const [itemId, setItemId] = useState(() =>
+    initialMarketTabItemIdFrom(marketItems ?? MARKET_ITEMS)
+  );
+  const [itemFilter, setItemFilter] = useState("");
+  const selected = useMemo(() => {
+    const hit = pool.find((it) => it.id === itemId);
+    if (hit) return hit;
+    return pool[0] ?? getDefaultMarketItemForUi();
+  }, [itemId, pool]);
+
+  useEffect(() => {
+    if (!pool.some((it) => it.id === itemId)) {
+      setItemId(initialMarketTabItemIdFrom(pool));
+    }
+  }, [pool, itemId]);
+
   const { shownItems, allMatching } = useMemo(() => {
-    const all = itemFilter.trim()
-      ? searchMarketItems(itemFilter)
-      : [...MARKET_ITEMS];
+    const q = itemFilter.trim().toLowerCase();
+    const all = q
+      ? pool.filter((it) =>
+          marketItemSearchBlob(it, locale).toLowerCase().includes(q)
+        )
+      : [...pool];
     return { allMatching: all, shownItems: all.slice(0, 120) };
-  }, [itemFilter]);
+  }, [itemFilter, pool, locale]);
   const [newsAuto, setNewsAuto] = useState("");
   const [newsLoading, setNewsLoading] = useState(true);
   const [weatherSnap, setWeatherSnap] = useState<CurrentWeatherSnapshot | null>(
     null
   );
+  const [weatherCoords, setWeatherCoords] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
   const [mlDetail, setMlDetail] = useState<MlNextDayDetail | null>(null);
   const [mlErr, setMlErr] = useState<string | null>(null);
   const [mlLoading, setMlLoading] = useState(false);
@@ -164,7 +195,7 @@ export function MarketPanel() {
   const mlRunRef = useRef(0);
 
   const chartSeries = useMemo(
-    () => riceMidSeriesForChart(selected),
+    () => riceMidSeriesForChartDisplay(selected),
     [selected]
   );
 
@@ -198,7 +229,10 @@ export function MarketPanel() {
       const applyYangon = async () => {
         const y = MYANMAR_PLACES[0]!;
         const w = await fetchCurrentWeather(y.latitude, y.longitude);
-        if (!cancelled) setWeatherSnap(w);
+        if (!cancelled) {
+          setWeatherSnap(w);
+          setWeatherCoords({ lat: y.latitude, lon: y.longitude });
+        }
       };
       try {
         if (canUseBrowserGeolocation() && navigator.geolocation) {
@@ -213,7 +247,10 @@ export function MarketPanel() {
           );
           const { latitude, longitude } = pos.coords;
           const w = await fetchCurrentWeather(latitude, longitude);
-          if (!cancelled) setWeatherSnap(w);
+          if (!cancelled) {
+            setWeatherSnap(w);
+            setWeatherCoords({ lat: latitude, lon: longitude });
+          }
         } else {
           await applyYangon();
         }
@@ -248,49 +285,77 @@ export function MarketPanel() {
         ? midPriceMomentumPct(rawMids.slice(-8))
         : null;
     const rainMm = rainfallMmHintFromWeatherCode(weatherSnap.weatherCode);
-    fetchMlNextDayDetail({
-      avgPrices: prices,
-      rainfallMm: rainMm,
-      tempC: weatherSnap.temperatureC,
-      newsHeadline: headline,
-      fallbackMomentum: momentum,
-    })
-      .then((d) => {
-        if (mlRunRef.current === runId) setMlDetail(d);
-      })
-      .catch((e) => {
-        if (mlRunRef.current === runId) {
-          setMlErr(
-            e instanceof Error ? e.message : t("errors.mlBackend")
+    const newsSlices = newsHeadlinesForMlHistory(headline, 30);
+    let cancelled = false;
+    void (async () => {
+      let rainHist: number[] | undefined;
+      let tempHist: number[] | undefined;
+      try {
+        if (weatherCoords) {
+          const h = await fetchWeatherHistoryDaily(
+            weatherCoords.lat,
+            weatherCoords.lon,
+            30
           );
+          rainHist = h.rainMm;
+          tempHist = h.tempC;
         }
+      } catch {
+        /* scalar fallback */
+      }
+      if (cancelled) return;
+      fetchMlNextDayDetail({
+        avgPrices: prices,
+        marketItemId: selected.id,
+        rainfallMm: rainMm,
+        tempC: weatherSnap.temperatureC,
+        newsHeadline: headline,
+        rainfallMmHistory: rainHist,
+        tempCHistory: tempHist,
+        newsHeadlinesHistory: newsSlices,
+        fallbackMomentum: momentum,
       })
-      .finally(() => {
-        if (mlRunRef.current === runId) setMlLoading(false);
-      });
-  }, [mlBase, selected, weatherSnap, newsAuto, newsLoading, t]);
+        .then((d) => {
+          if (mlRunRef.current === runId) setMlDetail(d);
+        })
+        .catch((e) => {
+          if (mlRunRef.current === runId) {
+            setMlErr(
+              e instanceof Error ? e.message : t("errors.mlBackend")
+            );
+          }
+        })
+        .finally(() => {
+          if (mlRunRef.current === runId) setMlLoading(false);
+        });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mlBase, selected, weatherSnap, newsAuto, newsLoading, t, weatherCoords]);
 
   const newsLines = useMemo(
     () => riceNewsContextToLines(newsAuto, 8),
     [newsAuto]
   );
   const usedPlaceholderNews = !newsAuto.trim();
-  const screenVerdictLabel = verdictLabelForLocale(
-    locale,
-    screenNewsVerdict(prediction?.factors.newsVerdict)
+  const screenVerdictLabel = useMemo(
+    () =>
+      verdictLabelForLocale(
+        locale,
+        blendScreenNewsVerdictWithMomentum(
+          screenNewsVerdict(prediction?.factors.newsVerdict),
+          mlDetail?.priceChange1dPct,
+          mlDetail?.priceChange7dPct
+        )
+      ),
+    [
+      locale,
+      prediction?.factors.newsVerdict,
+      mlDetail?.priceChange1dPct,
+      mlDetail?.priceChange7dPct,
+    ]
   );
-
-  const latestDateIso = useMemo(() => {
-    if (chartSeries.length > 0) {
-      return chartSeries[chartSeries.length - 1]!.dateIso;
-    }
-    return prediction?.baselineDateIso ?? null;
-  }, [chartSeries, prediction]);
-
-  const latestDateLabel = useMemo(() => {
-    if (!latestDateIso) return null;
-    return formatLongDateLabel(latestDateIso, locale);
-  }, [latestDateIso, locale]);
 
   const mlForecastKyat =
     prediction && mlDetail
@@ -305,17 +370,35 @@ export function MarketPanel() {
   const displayForecastMid =
     mlForecastKyat?.mid ?? prediction?.predictedMid ?? null;
 
+  const displayForecastRange = useMemo(() => {
+    if (!prediction) return null;
+    if (mlForecastKyat)
+      return { low: mlForecastKyat.low, high: mlForecastKyat.high };
+    return {
+      low: prediction.predictedLow,
+      high: prediction.predictedHigh,
+    };
+  }, [prediction, mlForecastKyat]);
+
   const adviceItemLabel = useMemo(
-    () => shortMarketItemLabelForUi(selected),
-    [selected]
+    () => marketItemLabelForLocale(selected, locale),
+    [selected, locale]
   );
+  const showMlEvaluating =
+    mlBase && !mlErr && mlDetail == null && (mlLoading || newsLoading || !weatherSnap);
 
   return (
-    <div className="panel market-panel">
-      <div className="page-title-row">
-        <IconMarket className="panel-icon" aria-hidden />
-        <h2 className="page-title">{t("market.title")}</h2>
-      </div>
+    <div
+      className={
+        hideTitle ? "market-panel market-panel--embed" : "panel market-panel"
+      }
+    >
+      {!hideTitle ? (
+        <div className="page-title-row">
+          <IconMarket className="panel-icon" aria-hidden />
+          <h2 className="page-title">{t("market.title")}</h2>
+        </div>
+      ) : null}
       <div className="card market-detail">
         <p className="result-label">{t("market.chooseItem")}</p>
         <input
@@ -343,7 +426,9 @@ export function MarketPanel() {
                 className={`market-row ${it.id === itemId ? "active" : ""}`}
                 onClick={() => setItemId(it.id)}
               >
-                <span className="market-row-title">{it.itemDetails}</span>
+                <span className="market-row-title">
+                  {marketItemLabelForLocale(it, locale)}
+                </span>
                 <span className="market-row-meta">{it.itemCategory}</span>
               </button>
             </li>
@@ -351,19 +436,14 @@ export function MarketPanel() {
         </ul>
 
         <p className="result-label">{t("market.selected")}</p>
-        <p className="market-detail-title">{selected.itemDetails}</p>
+        <p className="market-detail-title">
+          {marketItemLabelForLocale(selected, locale)}
+        </p>
         <p className="meta market-breadcrumb">
-          {[selected.group, selected.mainCategory, selected.itemCategory]
-            .filter(Boolean)
-            .join(" · ")}
+          {marketItemMetaLineForLocale(selected, locale)}
         </p>
 
         <p className="result-label">{t("market.chartTitle")}</p>
-        {latestDateLabel ? (
-          <p className="meta market-date-caption">
-            {tf("market.chartDataThrough", { date: latestDateLabel })}
-          </p>
-        ) : null}
         <PriceHistoryChart series={chartSeries} locale={locale} />
 
         {displayForecastMid != null && prediction && (
@@ -372,6 +452,14 @@ export function MarketPanel() {
             <p className="prediction-mid">
               {formatMmks(displayForecastMid)} {t("common.mmk")}
             </p>
+            {displayForecastRange ? (
+              <p className="meta prediction-range">
+                {tf("market.forecastPriceRange", {
+                  low: formatMmks(displayForecastRange.low),
+                  high: formatMmks(displayForecastRange.high),
+                })}
+              </p>
+            ) : null}
             <p className="meta market-date-caption">
               {mlDetail != null
                 ? tf("market.forecastConfidenceMl", {
@@ -388,14 +476,17 @@ export function MarketPanel() {
           <p className="result-label">{t("market.adviceTitle")}</p>
           {mlBase ? (
             <>
-              {mlLoading && (
+              {showMlEvaluating && (
                 <p className="meta">{t("market.mlBackendLoading")}</p>
               )}
               {mlErr && <p className="weather-msg">{mlErr}</p>}
               {mlDetail != null && weatherSnap ? (() => {
                 const advice = adviceFromMlNextDayPct(
                   mlDetail.nextDayPctChange,
-                  { priceChange7dPct: mlDetail.priceChange7dPct }
+                  {
+                    priceChange1dPct: mlDetail.priceChange1dPct,
+                    priceChange7dPct: mlDetail.priceChange7dPct,
+                  }
                 );
                 const glyph =
                   advice === "hold" ? "▲" : advice === "sell" ? "✕" : "—";

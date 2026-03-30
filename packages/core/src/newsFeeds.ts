@@ -1,5 +1,5 @@
 /**
- * Aggregates public RSS feeds (BBC Burmese, Google News, etc.).
+ * Aggregates public RSS feeds (BBC Burmese, Google News, DOA Myanmar via site:doa.gov.mm, etc.).
  * Uses rss2json.com as a fallback when direct fetch fails (typical in browsers due to CORS).
  * Not affiliated with those services — check their terms for production use.
  */
@@ -74,6 +74,15 @@ export const NEWS_FEED_SOURCES: readonly NewsFeedSource[] = [
     scope: "myanmar",
     rssUrl:
       "https://news.google.com/rss/search?q=Myanmar+government+OR+policy+OR+economy+OR+export+OR+import&hl=en-US&gl=US&ceid=US:en",
+  },
+  /** Indexed pages from doa.gov.mm (no native RSS on the site). */
+  {
+    id: "google-doa-myanmar",
+    label: "စိုက်ပျိုးရေးဦးစီးဌာန DOA (site:doa.gov.mm)",
+    lang: "en",
+    scope: "myanmar",
+    rssUrl:
+      "https://news.google.com/rss/search?q=site:doa.gov.mm&hl=en-US&gl=US&ceid=US:en",
   },
   {
     id: "google-weather-ag",
@@ -346,6 +355,7 @@ const AG_MARKET_CONTEXT_SOURCE_IDS: readonly string[] = [
   "google-oil-energy",
   "google-transport-logistics",
   "google-myanmar-policy",
+  "google-doa-myanmar",
   "google-weather-ag",
   "google-myanmar",
   "google-seasia",
@@ -361,7 +371,7 @@ const _TOPIC_TRANSPORT =
 const _TOPIC_GOV =
   /\b(government|ministry|policy|parliament|sanction|subsidy|tariff|regulation|export ban|import ban)\b/i;
 const _TOPIC_AG =
-  /\b(agriculture|farming|farm|crop|harvest|paddy|rice|wheat|grain|fertilizer|commodity|food security|inflation)\b/i;
+  /\b(agriculture|farming|farm|crop|harvest|paddy|rice|wheat|grain|fertilizer|commodity|food security|inflation|department\s+of\s+agriculture|doa\b)\b/i;
 const _TOPIC_WEATHER =
   /\b(weather|monsoon|rain|drought|flood|cyclone|typhoon|heatwave|climate|storm)\b/i;
 const _TOPIC_MM =

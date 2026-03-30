@@ -92,13 +92,21 @@ npm run build:core
 
 From the repo root you can instead run **`npm run market:sync`** (same as the two commands above).
 
-The script also writes **`backend/data/rice_data.csv`**: daily mid-prices for **March 1–24** in the sheet’s month (flat carry before the first / after the last survey column), built from the best **စပါး/ဆန်** row with prices, or—if those cells are empty—the **most complete priced row** (often ဂျုံ), or a synthetic demo series. Retrain the API model with:
+The script also writes **`backend/data/rice_data.csv`**: daily mid-prices for **March 1–24** in the sheet’s month (flat carry before the first / after the last survey column), built from the best **စပါး/ဆန်** row with prices, or—if those cells are empty—the **most complete priced row** (often ဂျုံ), or a synthetic demo series. Retrain the **global** API model (one combined series) with:
 
 ```bash
 npm run market:train
 ```
 
 (use a real venv with `backend` deps if `python3` lacks `xgboost`). For quick training without downloading transformers, the script sets **`RICE_SENTIMENT_MOCK=1`**.
+
+**Per-commodity models (recommended for demos):** the same export writes one CSV per workbook row under **`backend/data/ml_items/<MARKET_ITEM_ID>.csv`** (the 16-character `id` in `marketData.generated.ts`). Train **fast** channel-only bundles (three small XGBoost JSON files per item, loaded once and cached in the API process):
+
+```bash
+npm run ml:train:items
+```
+
+Artifacts go to **`backend/models/by_item/<id>/`**. The web and mobile Market tabs send each row’s **`marketItemId`** to `/api/predict/next-day-pct`; if that folder exists, inference uses it, otherwise it falls back to the global models under `backend/models/`. Skip generating `ml_items` with `python scripts/xlsx_to_market.py --no-ml-items`.
 
 **Windows (PowerShell or Command Prompt):**
 
@@ -123,7 +131,8 @@ The script writes **`packages/core/src/marketData.generated.ts`** (committed so 
 | `npm run build:web` | Production build of the web app |
 | `npm run build:core` | Rebuild `packages/core` only |
 | `npm run market:sync` | Regenerate `marketData.generated.ts` + `rice_data.csv` from `data.xlsx`, then build core |
-| `npm run market:train` | Train `backend/models/rice_xgb.json` from `backend/data/rice_data.csv` (mock sentiment) |
+| `npm run market:train` | Train global `backend/models/rice_xgb*.json` from `backend/data/rice_data.csv` (mock sentiment) |
+| `npm run ml:train:items` | Train per-row bundles under `backend/models/by_item/<id>/` from `backend/data/ml_items/*.csv` |
 
 ## Troubleshooting
 

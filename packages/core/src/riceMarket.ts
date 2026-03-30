@@ -151,7 +151,23 @@ export function initialMarketTabItemId(): string {
   return fallback?.id ?? MARKET_ITEMS[0]!.id;
 }
 
-/** Mid-price points for charts, oldest → newest. */
+/**
+ * Default selection when the picker is limited (e.g. စိုက်ပျိုးရေး vs မွေးမြူရေး tabs).
+ * Prefers the primary rice row if it appears in `items`, else the first row with ≥8 mids.
+ */
+export function initialMarketTabItemIdFrom(
+  items: readonly MarketItem[]
+): string {
+  if (items.length === 0) return initialMarketTabItemId();
+  const rice = getPrimaryRiceMarketItem();
+  if (items.some((it) => it.id === rice.id)) return rice.id;
+  const fallback = items.find(
+    (it) => recentMidPricesForInference(it, 8) != null
+  );
+  return fallback?.id ?? items[0]!.id;
+}
+
+/** Mid-price points for charts, oldest → newest (full history). */
 export function riceMidSeriesForChart(
   item: MarketItem
 ): { dateIso: string; mid: number }[] {
@@ -164,4 +180,53 @@ export function riceMidSeriesForChart(
     if (m != null) out.push({ dateIso: o.dateIso, mid: m });
   }
   return out;
+}
+
+/** Default chart window: last N calendar days from the latest observation (UI only). */
+export const CHART_DEFAULT_RECENT_DAYS = 30;
+/** Food CSV rows show a broader history window for demos (about 10 months). */
+export const CHART_FOOD_RECENT_DAYS = 31 * 10;
+
+/** Food / WFP rows from `food_*cleaned*.csv` (national median series). */
+export function isWfpFoodPriceItem(item: MarketItem): boolean {
+  return item.mainCategory.includes("WFP") || item.itemDetails.includes("(WFP)");
+}
+
+/**
+ * Chart series for the market UI: last ~`days` from the newest price (rolling window).
+ * For monthly surveys this usually shows **two** recent points (e.g. mid-Nov and mid-Dec), not a single dot.
+ *
+ * ML / next-day prediction still uses the **full** `item.observations` trail elsewhere.
+ */
+export function riceMidSeriesForChartDisplay(
+  item: MarketItem,
+  days: number = CHART_DEFAULT_RECENT_DAYS
+): { dateIso: string; mid: number }[] {
+  const windowDays =
+    days === CHART_DEFAULT_RECENT_DAYS && isWfpFoodPriceItem(item)
+      ? CHART_FOOD_RECENT_DAYS
+      : days;
+  return riceMidSeriesForChartLastDays(item, windowDays);
+}
+
+/**
+ * Chart series limited to the last `days` from the newest price point.
+ * If that window has fewer than 2 points (e.g. monthly surveys), uses the last 2 points so the line still draws.
+ */
+export function riceMidSeriesForChartLastDays(
+  item: MarketItem,
+  days: number = CHART_DEFAULT_RECENT_DAYS
+): { dateIso: string; mid: number }[] {
+  const full = riceMidSeriesForChart(item);
+  if (full.length === 0) return [];
+  const last = full[full.length - 1]!;
+  const lastDay = last.dateIso.slice(0, 10);
+  const end = new Date(lastDay + "T12:00:00Z");
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - days);
+  const cutoffIso = start.toISOString().slice(0, 10);
+  const filtered = full.filter((p) => p.dateIso.slice(0, 10) >= cutoffIso);
+  if (filtered.length >= 2) return filtered;
+  if (full.length >= 2) return full.slice(-2);
+  return full;
 }

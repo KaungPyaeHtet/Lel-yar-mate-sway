@@ -122,3 +122,51 @@ export async function fetchCurrentWeather(
   }
   return parsed;
 }
+
+/** Open-Meteo daily series for ML rolling weather (past_days includes recent history). */
+export function buildOpenMeteoPastDailyUrl(
+  latitude: number,
+  longitude: number,
+  pastDays: number
+): string {
+  const p = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    daily: ["temperature_2m_mean", "precipitation_sum"].join(","),
+    past_days: String(Math.min(92, Math.max(1, pastDays))),
+    timezone: TIMEZONE,
+  });
+  return `https://api.open-meteo.com/v1/forecast?${p.toString()}`;
+}
+
+/**
+ * Last `days` daily points (precipitation mm, mean temperature °C), oldest → newest.
+ * Used to align ML training (30-day rolling weather) with live inference.
+ */
+export async function fetchWeatherHistoryDaily(
+  latitude: number,
+  longitude: number,
+  days: number
+): Promise<{ rainMm: number[]; tempC: number[] }> {
+  const url = buildOpenMeteoPastDailyUrl(latitude, longitude, days);
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Weather history failed (${res.status})`);
+  }
+  const j = (await res.json()) as {
+    daily?: {
+      temperature_2m_mean?: number[];
+      precipitation_sum?: number[];
+    };
+  };
+  const d = j.daily;
+  const t = d?.temperature_2m_mean;
+  const r = d?.precipitation_sum;
+  if (!t?.length || !r?.length) {
+    throw new Error("Unexpected weather history response");
+  }
+  const n = Math.min(days, t.length, r.length);
+  const t2 = t.slice(-n).map((x) => Number(x));
+  const r2 = r.slice(-n).map((x) => Number(x));
+  return { tempC: t2, rainMm: r2 };
+}

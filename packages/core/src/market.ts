@@ -158,6 +158,39 @@ export function getMarketItemById(id: string): MarketItem | undefined {
   return MARKET_ITEMS.find((it) => it.id === id);
 }
 
+/** WFP food rows use this `group` value (meat, fish, eggs). */
+export const FARMING_LIVESTOCK_GROUP = "မွေးမြူရေး";
+
+/** Workbook + demo rows + crop (veg/fruit) food series — excludes livestock-only items. */
+export const FARMING_PLANT_ITEMS: readonly MarketItem[] = MARKET_ITEMS.filter(
+  (it) => it.group !== FARMING_LIVESTOCK_GROUP
+);
+
+/** Meat, fish, eggs series from food CSV (`မွေးမြူရေး`). */
+export const FARMING_LIVESTOCK_ITEMS: readonly MarketItem[] = MARKET_ITEMS.filter(
+  (it) => it.group === FARMING_LIVESTOCK_GROUP
+);
+
+export function searchMarketItemsIn(
+  items: readonly MarketItem[],
+  query: string
+): MarketItem[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [...items];
+  return items.filter((it) => {
+    const hay = [
+      it.group,
+      it.mainCategory,
+      it.category,
+      it.itemCategory,
+      it.itemDetails,
+    ]
+      .join(" ")
+      .toLowerCase();
+    return hay.includes(q);
+  });
+}
+
 /** Simple trend: slope of mid vs index over last `window` points, capped. */
 function trendMultiplier(obsSorted: PriceObservation[], window = 4): number {
   const mids: number[] = [];
@@ -239,6 +272,30 @@ export type PricePrediction = {
  * Blend spreadsheet baseline with optional news + weather signals.
  * For hackathon / education only — not trading or policy advice.
  */
+/**
+ * When the chart shows a sharp move but RSS text is neutral, avoid implying “stable”
+ * prices in copy that summarizes the rules-based news read (ML block rationale).
+ */
+export function blendScreenNewsVerdictWithMomentum(
+  fromNewsRules: "up" | "down" | "flat",
+  change1dPct?: number | null,
+  change7dPct?: number | null
+): "up" | "down" | "flat" {
+  const d1 =
+    typeof change1dPct === "number" && !Number.isNaN(change1dPct)
+      ? change1dPct
+      : null;
+  const d7 =
+    typeof change7dPct === "number" && !Number.isNaN(change7dPct)
+      ? change7dPct
+      : null;
+  if (d1 != null && d1 <= -3.5) return "down";
+  if (d7 != null && d7 <= -5.5) return "down";
+  if (d1 != null && d1 >= 3.5) return "up";
+  if (d7 != null && d7 >= 6.0) return "up";
+  return fromNewsRules;
+}
+
 export function predictItemPrice(
   item: MarketItem,
   options?: {
@@ -327,6 +384,42 @@ export function mlNewsHeadlineForItem(
   return combined.length <= maxChars
     ? combined
     : `${combined.slice(0, maxChars - 1)}…`;
+}
+
+/**
+ * Split RSS/news text into ~`maxDays` strings so the ML backend can treat them like
+ * a multi-day headline window (aligned with 30-day rolling news in training).
+ */
+export function newsHeadlinesForMlHistory(
+  combinedHeadline: string,
+  maxDays = 30
+): string[] {
+  const t = combinedHeadline.trim();
+  if (!t) {
+    return Array.from({ length: maxDays }, () => "Commodity markets.");
+  }
+  const sentences = t
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (sentences.length === 0) {
+    return Array.from({ length: maxDays }, () => t);
+  }
+  if (sentences.length >= maxDays) {
+    return sentences.slice(-maxDays);
+  }
+  const buckets: string[] = Array.from({ length: maxDays }, () => "");
+  for (let i = 0; i < sentences.length; i++) {
+    const b = i % maxDays;
+    buckets[b] = buckets[b]
+      ? `${buckets[b]} ${sentences[i]!}`
+      : sentences[i]!;
+  }
+  const last = sentences[sentences.length - 1]!;
+  for (let i = 0; i < maxDays; i++) {
+    if (!buckets[i]!.trim()) buckets[i] = last;
+  }
+  return buckets;
 }
 
 /** Short label for advice UI (category + detail, truncated). */

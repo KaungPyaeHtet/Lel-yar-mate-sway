@@ -1,4 +1,4 @@
-import type { AppLocale } from "@agriora/core";
+import type { AppLocale, AppStringKey } from "@agriora/core";
 import {
   IconGlobeSimple,
   IconInformation,
@@ -9,6 +9,11 @@ import { useI18n } from "./LocaleContext";
 
 export function SettingsPanel() {
   const { locale, setLocale, t } = useI18n();
+  const faqRows: Array<{ q: AppStringKey; a: AppStringKey }> = [
+    { q: "about.faqQ1", a: "about.faqA1" },
+    { q: "about.faqQ2", a: "about.faqA2" },
+    { q: "about.faqQ3", a: "about.faqA3" },
+  ];
 
   function pick(next: AppLocale) {
     setLocale(next);
@@ -54,6 +59,18 @@ export function SettingsPanel() {
       </div>
       <div className="card">
         <p className="body about-body-my">{t("about.body")}</p>
+      </div>
+
+      <h3 className="subheading">{t("about.faqTitle")}</h3>
+      <div className="card faq-card">
+        {faqRows.map(({ q, a }, idx) => (
+          <div key={q} className="faq-item">
+            <p className="faq-q">
+              Q{idx + 1}. {t(q)}
+            </p>
+            <p className="faq-a">{t(a)}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

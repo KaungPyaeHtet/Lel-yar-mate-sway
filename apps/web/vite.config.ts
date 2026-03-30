@@ -1,5 +1,9 @@
+import nodePath from 'node:path'
+import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
+
+const __viteDir = nodePath.dirname(fileURLToPath(import.meta.url))
 
 /** Must match `rssUrl` hosts in `@agriora/core` `NEWS_FEED_SOURCES` (vite config cannot import core reliably). */
 const RSS_PROXY_HOSTS = new Set([
@@ -87,6 +91,22 @@ export default defineConfig(({ mode }) => {
       __AGRIORA_VITE_ML_URL__: JSON.stringify(viteMlUrl),
       __AGRIORA_VITE_DEV__: mode === 'development',
     },
+    /**
+     * Dev: bundle `@agriora/core` from TypeScript sources so `marketData.generated.ts`
+     * updates show up without running `npm run build --workspace=@agriora/core`.
+     * Prod: use published `dist` from the package (run `build:core` before `build:web`).
+     */
+    resolve:
+      mode === 'development'
+        ? {
+            alias: {
+              '@agriora/core': nodePath.resolve(
+                __viteDir,
+                '../../packages/core/src/index.ts'
+              ),
+            },
+          }
+        : {},
     plugins: [react(), rssFetchDevProxy()],
     server: {
       /** Listen on all interfaces so phones / other PCs on the LAN can open the dev URL. */

@@ -12,6 +12,14 @@ News → sentiment score for the rice XGBoost feature (roughly [-1, 1]).
 Final score blends lexical + neural (lexical-weighted) so RSS titles move the needle.
 
 Set RICE_SENTIMENT_MOCK=1 to skip transformers (lexical + keywords only).
+
+Training (`train_from_csv.py`): with MOCK unset, each CSV row’s rolling news window is scored
+by the same HF stack below so XGBoost learns from real ClimateBERT signals alongside weather
+aggregates and price history.
+
+Environment:
+  CLIMATE_USE_SENTIMENT_HEAD=1 — use `climatebert/distilroberta-base-climate-sentiment` (3-class)
+  instead of embedding cosine from `climatebert/distilroberta-base-climate-f`.
 """
 
 from __future__ import annotations

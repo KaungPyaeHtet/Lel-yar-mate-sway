@@ -7,13 +7,17 @@
   ],
   "scripts": {
     "postinstall": "npm run build --workspace=@agriora/core",
-    "ml:api": "PATH=\"$PWD/.venv-ml/bin:$PATH\" python3 -m uvicorn backend.server:app --host 0.0.0.0 --port 8000 --reload --loop asyncio",
+    "ml:api": "RICE_SENTIMENT_MOCK=1 AGRIORA_RAG=0 PATH=\"$PWD/.venv-ml/bin:$PATH\" python3 -m uvicorn backend.server:app --host 0.0.0.0 --port 8000 --loop asyncio",
     "web": "npm run dev --workspace=@agriora/web",
     "mobile": "npm run start --workspace=@agriora/mobile",
+    "mobile:tunnel": "npm run start:tunnel --workspace=@agriora/mobile",
     "build:web": "npm run build --workspace=@agriora/web",
     "build:core": "npm run build --workspace=@agriora/core",
     "market:sync": "python3 scripts/xlsx_to_market.py && npm run build:core",
+    "market:sheet": "python3 scripts/xlsx_to_market.py --no-rice-csv && npm run build:core",
     "market:train": "RICE_SENTIMENT_MOCK=1 python3 backend/train_from_csv.py --csv backend/data/rice_data.csv",
+    "ml:train:items": "RICE_SENTIMENT_MOCK=1 python3 backend/train_per_item.py --mock-sentiment",
+    "ml:retrain": "RICE_SENTIMENT_MOCK=1 python3 backend/train_from_csv.py --csv backend/data/rice_data.csv --mock-sentiment && npm run build:core",
     "ml:backtest": "RICE_SENTIMENT_MOCK=1 python3 backend/backtest_window.py --csv backend/data/rice_data.csv --walk-forward --min-train 8",
     "ml:backtest:window": "RICE_SENTIMENT_MOCK=1 python3 backend/backtest_window.py --csv backend/data/rice_data.csv --train-start 2026-03-14 --train-end 2026-03-20 --test-dates 2026-03-21,2026-03-23",
     "ml:news-report": "RICE_SENTIMENT_MOCK=1 python3 backend/report_news_corr.py --csv backend/data/rice_data.csv --mock-sentiment"

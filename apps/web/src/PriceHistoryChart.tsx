@@ -21,7 +21,7 @@ export function PriceHistoryChart({
   series: Point[];
   locale: AppLocale;
 }) {
-  if (series.length < 2) {
+  if (series.length === 0) {
     return (
       <p className="chart-empty">
         {locale === "my"
@@ -49,6 +49,63 @@ export function PriceHistoryChart({
     padL + (innerW * i) / Math.max(1, series.length - 1);
   const yAt = (v: number) =>
     padT + innerH - ((v - minV) / span) * innerH;
+
+  if (series.length === 1) {
+    const p = series[0]!;
+    const cx = padL + innerW / 2;
+    const cy = minV === maxV ? padT + innerH / 2 : yAt(p.mid);
+    return (
+      <div className="price-chart-wrap" role="img" aria-label="Price history">
+        <svg className="price-chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet">
+          {[0, 0.5, 1].map((t) => {
+            const y = padT + innerH * (1 - t);
+            return (
+              <line
+                key={t}
+                x1={padL}
+                y1={y}
+                x2={w - padR}
+                y2={y}
+                stroke="var(--color-border)"
+                strokeWidth={1}
+              />
+            );
+          })}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={5}
+            fill="var(--color-surface)"
+            stroke="var(--color-accent)"
+            strokeWidth={2.25}
+          />
+          <text
+            x={2}
+            y={padT + 12}
+            fill="var(--color-muted)"
+            fontSize="11"
+            fontWeight="600"
+          >
+            {Math.round(maxV / 1000)}k
+          </text>
+          <text
+            x={2}
+            y={padT + innerH}
+            fill="var(--color-muted)"
+            fontSize="11"
+            fontWeight="600"
+          >
+            {Math.round(minV / 1000)}k
+          </text>
+        </svg>
+        <div className="price-chart-xlabels">
+          <span className="price-chart-xlabel">
+            {formatAxisDate(p.dateIso, locale)}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const pathD = series
     .map((p, i) => `${i === 0 ? "M" : "L"} ${xAt(i).toFixed(1)} ${yAt(p.mid).toFixed(1)}`)

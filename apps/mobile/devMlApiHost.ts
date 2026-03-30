@@ -24,19 +24,51 @@ function isLikelyLanOrEmulatorHost(host: string): boolean {
   );
 }
 
+function hostFromMaybeUrl(raw: string): string | undefined {
+  const t = raw.trim();
+  if (!t) return undefined;
+  const withProto = t.includes("://") ? t : `http://${t}`;
+  try {
+    const u = new URL(withProto);
+    const h = u.hostname?.trim().toLowerCase();
+    return h || undefined;
+  } catch {
+    const h = t.split("/")[0]?.split(":")[0]?.trim().toLowerCase();
+    return h || undefined;
+  }
+}
+
+function candidateExpoHosts(): string[] {
+  const c = Constants as unknown as {
+    expoConfig?: { hostUri?: string; extra?: { expoGo?: { debuggerHost?: string } } };
+    expoGoConfig?: { debuggerHost?: string };
+    manifest2?: { extra?: { expoGo?: { debuggerHost?: string } } };
+    manifest?: { debuggerHost?: string };
+  };
+  return [
+    c.expoConfig?.hostUri,
+    c.expoGoConfig?.debuggerHost,
+    c.manifest2?.extra?.expoGo?.debuggerHost,
+    c.expoConfig?.extra?.expoGo?.debuggerHost,
+    c.manifest?.debuggerHost,
+  ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+}
+
 function inferMlApiFromExpoHost(): string | undefined {
-  const raw = Constants.expoConfig?.hostUri;
-  if (!raw || typeof raw !== "string") return undefined;
-  const host = raw.split(":")[0]?.trim();
-  if (!host || host === "localhost" || host === "127.0.0.1")
-    return undefined;
-  if (!isLikelyLanOrEmulatorHost(host)) return undefined;
-  return `http://${host}:8000`;
+  for (const raw of candidateExpoHosts()) {
+    const host = hostFromMaybeUrl(raw);
+    if (!host || host === "localhost" || host === "127.0.0.1") continue;
+    if (!isLikelyLanOrEmulatorHost(host)) continue;
+    return `http://${host}:8000`;
+  }
+  return undefined;
 }
 
 /** Expo Go on a phone cannot reach 127.0.0.1 on your Mac; use Metro’s host (LAN or 10.0.2.2). */
 export function applyDevMlApiHostFromExpo(): void {
   if (!envIsEmptyOrLoopback()) return;
   const inferred = inferMlApiFromExpoHost();
-  if (inferred) configureMlApiBaseUrl(inferred);
+  if (inferred) {
+    configureMlApiBaseUrl(inferred);
+  }
 }
