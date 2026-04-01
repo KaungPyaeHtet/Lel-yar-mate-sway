@@ -467,10 +467,6 @@ async def api_sentiment(body: SentimentRequest) -> SentimentResponse:
 @app.post("/api/predict/next-day-pct", response_model=PredictResponse)
 async def api_predict(body: PredictRequest) -> PredictResponse:
     try:
-        _load_model()
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=503, detail=str(e)) from e
-    try:
         from backend.pipeline import build_inference_features_and_meta
         from backend.rag_retriever import augment_news_for_ml
 
@@ -523,7 +519,10 @@ async def api_predict(body: PredictRequest) -> PredictResponse:
             channel_blend_weights=cw if isinstance(cw, dict) else None,
             rag_sources=rag_titles,
         )
-    y, br = _predict_ensemble(X)
+    try:
+        y, br = _predict_ensemble(X)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
     px = br.get("xgb")
     ph = br.get("hgb")
     return PredictResponse(

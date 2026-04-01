@@ -1,6 +1,17 @@
 # Agriora
 
-Hackathon monorepo: a **Vite + React** web app and an **Expo (React Native)** mobile app, sharing logic in **`@agriora/core`**. The UI defaults to **Burmese**; use the **ချိန်ညှိမှု / Settings** tab to switch to **English** (saved separately in the browser’s `localStorage` and on-device via AsyncStorage).
+Lel Yar Mate Sway is a market prediction prototype to predict agriculture products prices by relying on news, weather, and previous data designed for AI Climate Resilient Hackathon 2026 (ImpactHub) Event.
+
+## Screenshots
+
+### Home screen
+
+![Agriora home screen](docs/images/home-screen.png)
+
+### Forecast screen
+
+![Agriora forecast screen](docs/images/forecast-screen.png)
+
 
 ## Prerequisites
 
