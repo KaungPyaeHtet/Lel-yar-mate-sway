@@ -14,3 +14,6 @@ apps/web/dist
 backend/models/*.json
 backend/models/*.joblib
 backend/models/by_item/
+# Generated training datasets (keep out of git)
+backend/data/*.csv
+backend/data/ml_items/*.csv

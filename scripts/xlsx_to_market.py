@@ -20,7 +20,7 @@ The app’s Rice tab uses `RICE_MARKET_ITEMS`: rows whose category/detail match
 riceMarket.ts. If none, demo seed data is used and rice_data.csv is skipped.
 
 Usage (from repo root, with venv + openpyxl):
-  .venv/bin/pip install -r requirements-market.txt
+  .venv/bin/pip install openpyxl
   .venv/bin/python scripts/xlsx_to_market.py
   .venv/bin/python scripts/xlsx_to_market.py --no-rice-csv   # TS only; keeps hand-edited backend/data/rice_data.csv
 """

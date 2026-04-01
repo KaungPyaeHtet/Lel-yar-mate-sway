@@ -68,7 +68,7 @@ npx expo start --clear
 | `apps/mobile` | Expo SDK **54** (`npm run mobile`) |
 | `packages/core` | Shared TypeScript: `MARKET_ITEMS` / `predictItemPrice`, `loadAggregatedHeadlines` (RSS), news `analyzeWithRules`, `MYANMAR_PLACES`, `fetchCurrentWeather` |
 | `data.xlsx` | Source spreadsheet for Myanmar market lows/highs by date; regenerate TS after edits |
-| `scripts/xlsx_to_market.py` | Exports `packages/core/src/marketData.generated.ts` + `backend/data/rice_data.csv` for XGBoost (Python + `openpyxl`) |
+| `scripts/xlsx_to_market.py` | Exports `packages/core/src/marketData.generated.ts` + local ML CSVs in `backend/data/` (Python + `openpyxl`) |
 | `App.tsx` (repo root) | Re-exports the mobile app entry so Expo’s `AppEntry` resolves correctly when `expo` is hoisted in the workspace |
 
 ## Monorepo notes
@@ -85,14 +85,14 @@ After you change the root **`data.xlsx`**, regenerate the bundled snapshot and r
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -r requirements-market.txt
+.venv/bin/pip install openpyxl
 .venv/bin/python scripts/xlsx_to_market.py
 npm run build:core
 ```
 
 From the repo root you can instead run **`npm run market:sync`** (same as the two commands above).
 
-The script also writes **`backend/data/rice_data.csv`**: daily mid-prices for **March 1–24** in the sheet’s month (flat carry before the first / after the last survey column), built from the best **စပါး/ဆန်** row with prices, or—if those cells are empty—the **most complete priced row** (often ဂျုံ), or a synthetic demo series. Retrain the **global** API model (one combined series) with:
+The script also writes local generated files under **`backend/data/`** (ignored by git), including **`backend/data/rice_data.csv`**: daily mid-prices for **March 1–24** in the sheet’s month (flat carry before the first / after the last survey column), built from the best **စပါး/ဆန်** row with prices, or—if those cells are empty—the **most complete priced row** (often ဂျုံ), or a synthetic demo series. Retrain the **global** API model (one combined series) with:
 
 ```bash
 npm run market:train
@@ -112,7 +112,7 @@ Artifacts go to **`backend/models/by_item/<id>/`**. The web and mobile Market ta
 
 ```powershell
 py -3 -m venv .venv
-.venv\Scripts\pip install -r requirements-market.txt
+.venv\Scripts\pip install openpyxl
 .venv\Scripts\python scripts\xlsx_to_market.py
 npm run build:core
 ```
